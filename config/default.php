@@ -2,19 +2,19 @@
 ## ################################################## ##
 ## 	                 MysteriousBot                    ##
 ## -------------------------------------------------- ##
-## 	[*] Package: MysteriousBot                        ##
+##  [*] Package: MysteriousBot                        ##
 ##                                                    ##
-## 	[!] License: $LICENSE--------$                    ##
-## 	[!] Registered to: $DOMAIN----------------------$ ##
-## 	[!] Expires: $EXPIRES-$                           ##
+##  [!] License: $LICENSE--------$                    ##
+##  [!] Registered to: $DOMAIN----------------------$ ##
+##  [!] Expires: $EXPIRES-$                           ##
 ##                                                    ##
-## 	[?] File name: config.php                         ##
+##  [?] File name: config.php                         ##
 ##  [?] File type: Config profile                     ##
 ##  [?] File description: Please edit this file!      ##
 ##                                                    ##
-## 	[*] Author: debug <jtdroste@gmail.com>            ##
-## 	[*] Created: 5/23/2011                            ##
-## 	[*] Last edit: 5/23/2011                          ##
+##  [*] Author: debug <jtdroste@gmail.com>            ##
+##  [*] Created: 5/23/2011                            ##
+##  [*] Last edit: 5/24/2011                          ##
 ## ################################################## ##
 
 defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');

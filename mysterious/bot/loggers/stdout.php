@@ -1,19 +1,19 @@
 <?php
 ## ################################################## ##
-## 	                 MysteriousBot                    ##
+##                   MysteriousBot                    ##
 ## -------------------------------------------------- ##
-## 	[*] Package: MysteriousBot                        ##
+##  [*] Package: MysteriousBot                        ##
 ##                                                    ##
-## 	[!] License: $LICENSE--------$                    ##
-## 	[!] Registered to: $DOMAIN----------------------$ ##
-## 	[!] Expires: $EXPIRES-$                           ##
+##  [!] License: $LICENSE--------$                    ##
+##  [!] Registered to: $DOMAIN----------------------$ ##
+##  [!] Expires: $EXPIRES-$                           ##
 ##                                                    ##
-## 	[?] File name: stdout.php                         ##
+##  [?] File name: stdout.php                         ##
 ##  [?] File description: Blank logger, does nada     ##
 ##                                                    ##
-## 	[*] Author: debug <jtdroste@gmail.com>            ##
-## 	[*] Created: 5/23/2011                            ##
-## 	[*] Last edit: 5/23/2011                          ##
+##  [*] Author: debug <jtdroste@gmail.com>            ##
+##  [*] Created: 5/23/2011                            ##
+##  [*] Last edit: 5/24/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot\Loggers;

@@ -1,19 +1,19 @@
 <?php
 ## ################################################## ##
-## 	                 MysteriousCode                   ##
+##                   MysteriousCode                   ##
 ## -------------------------------------------------- ##
-## 	[*] Package: MysteriousCode                       ##
+##  [*] Package: MysteriousCode                       ##
 ##                                                    ##
-## 	[!] License: $LICENSE--------$                    ##
-## 	[!] Registered to: $DOMAIN----------------------$ ##
-## 	[!] Expires: $EXPIRES-$                           ##
+##  [!] License: $LICENSE--------$                    ##
+##  [!] Registered to: $DOMAIN----------------------$ ##
+##  [!] Expires: $EXPIRES-$                           ##
 ##                                                    ##
-## 	[?] File name: singleton.php                      ##
+##  [?] File name: singleton.php                      ##
 ##  [?] File version: 1.0-GOLD                        ##
 ##                                                    ##
-## 	[*] Author: debug <jtdroste@gmail.com>            ##
-## 	[*] Created: 5/23/2011                            ##
-## 	[*] Last edit: 5/23/2011                          ##
+##  [*] Author: debug <jtdroste@gmail.com>            ##
+##  [*] Created: 5/23/2011                            ##
+##  [*] Last edit: 5/24/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious;
