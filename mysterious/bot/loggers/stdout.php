@@ -37,7 +37,7 @@ class STDOUT extends AbstractLogger {
 	}
 	
 	public function fatal($file, $line, $message) {
-		die('[FATAL] '.$file.'/'.$line.': '.$message."\n\n\n".'Good bye!');
+		die('[FATAL] '.$file.'('.$line.'): '.$message."\n\n\n".'Good bye!');
 		
 		return false;
 	}

@@ -55,7 +55,7 @@ class Logger extends Singleton {
 			if ( count($args) != 3 ) {
 				return false;
 			} else {
-				$args[0] = str_replace(BASE_DIR, '', $args[0]);
+				$args[0] = str_replace(BASE_DIR, './', $args[0]);
 				return call_user_func_array(array(self::$_logger, $name), $args);
 			}
 		} else {

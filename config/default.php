@@ -1,6 +1,6 @@
 <?php
 ## ################################################## ##
-## 	                 MysteriousBot                    ##
+##                   MysteriousBot                    ##
 ## -------------------------------------------------- ##
 ##  [*] Package: MysteriousBot                        ##
 ##                                                    ##
@@ -23,11 +23,13 @@ return array(
 	'debug' => true, // Enable debug-mode?
 	
 	'connection' => array(
-		'type' => 'server', // Valid types are 'server' or 'client'. Server requires a linkpass, client doesn't.
+		'type' => 'client', // Valid types are 'server' or 'client'. Server requires a linkpass, client doesn't.
 		'linkpass' => 'my_linkpass_here', // If your type above is server, it requires a linkpass
 		'linkname' => 'my.mysterious.bot', // The linked server's name. Again, requires type to be server
 		
 		'server' => 'irc.freenode.net', // The IRC Server. REQUIRED.
+		'port' => 6697, // The IRC Server PORT. REQUIRED.
+		'ssl' => false, // Use ssl?
 		'password' => '', // If the IRC server requires a password to connect, put it here.
 		
 		// The following config is only used when the connection type is server.
@@ -118,4 +120,6 @@ return array(
 	'logger' => array(
 		'default' => 'STDOUT', // Default logger script
 	),
+	
+	'yes_i_edited_this' => false, // IMPORTANT! CHANGE THIS TO TRUE!
 );

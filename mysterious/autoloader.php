@@ -62,7 +62,8 @@ class Loader {
 	public static function handle_error($num, $str, $file, $line, $context) {
 		switch ( $num ) {
 			case E_USER_ERROR:
-				$msg = "PHP Fatal error:  Error number %s with the message '%s'.\nFile: %s\nLine: %s\n\nBacktrace: \n<pre>%s</pre>";
+				$msg = "PHP Fatal error%s: %s.\nFile: %s\nLine: %s";
+				$num = null;
 			break;
 			
 			case E_USER_WARNING:
@@ -74,40 +75,8 @@ class Loader {
 			break;
 			
 			default:
-				$msg = "PHP Unknown error:  Error number %s with the message '%s'.\nFile: %s\nLine: %s\n\nBacktrace: \n<pre>%s</pre>";
+				$msg = "PHP Unknown error (".constrant($num)."): Error number %s with the message '%s'.\nFile: %s\nLine: %s";
 			break;
-		}
-		
-		/*
-		 * @author: ash
-		 * @link: http://php.net/manual/en/function.set-error-handler.php#76900
-		 */
-		$trace = '';
-		foreach ( array_reverse(debug_backtrace()) as $v) {
-			if ( isset($v['class']) ) {
-				$trace .= 'In class '.$v['class'].'::'.$v['function'].'(';
-				
-				if ( isset($v['args']) ) {
-					$separator = '';
-				
-					foreach( $v['args'] as $arg ) {
-						$trace .= "$separator".static::getArgument($arg);
-						$separator = ', ';
-					}
-				}
-			$trace .= ")\n\n";
-			} else if ( isset($v['function']) && empty($trace) ) {
-				$trace .= 'In function '.$v['function'].'(';
-				if ( !empty($v['args']) ) {
-					$separator = '';
-				
-					foreach( $v['args'] as $arg ) {
-						$trace .= "$separator".static::getArgument($arg);
-						$separator = ', ';
-					}
-				}
-				$trace .= ")\n\n";
-			}
 		}
 		
 		$msg = nl2br(sprintf(
@@ -115,8 +84,7 @@ class Loader {
 			$num,
 			$str,
 			$file,
-			$line,
-			$trace
+			$line
 		));
 		
 		defined('IS_CLI') && ($msg = strip_tags($msg));
@@ -163,40 +131,8 @@ class Loader {
 		defined('IS_CLI') && ($msg = strip_tags($msg));
 		
 		die($msg);
-	}
-	
-	/*
-	 * @author: ash
-	 * @link: http://php.net/manual/en/function.set-error-handler.php#76900
-	 */
-	public static function getArgument($arg) {
-		switch ( strtolower(gettype($arg)) ) {
-			case 'string':
-				return( '"'.str_replace( array("\n"), array(''), $arg ).'"' );
 		
-			case 'boolean':
-				return (bool)$arg;
-		
-			case 'object':
-				return 'object('.get_class($arg).')';
-		
-			case 'array':
-				$ret = 'array(';
-				$separtor = '';
-					
-				foreach ($arg as $k => $v) {
-					$ret .= $separtor.static::getArgument($k).' => '.static::getArgument($v);
-					$separtor = ', ';
-				}
-				$ret .= ')';
-				return $ret;
-		
-			case 'resource':
-				return 'resource('.get_resource_type($arg).')';
-		
-			default:
-				return var_export($arg, true);
-		}
+		return true;
 	}
 }
 
