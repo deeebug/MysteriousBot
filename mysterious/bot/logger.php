@@ -51,6 +51,9 @@ class Logger extends Singleton {
 			$this->__initialize();
 		}
 		
+		if ( $name == 'debug' && Config::get_instance()->get('debug') !== true )
+			return;
+		
 		if ( is_callable(array(self::$_logger, $name)) ) {
 			if ( count($args) != 3 ) {
 				return false;

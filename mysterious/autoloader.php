@@ -75,7 +75,7 @@ class Loader {
 			break;
 			
 			default:
-				$msg = "PHP Unknown error (".constrant($num)."): Error number %s with the message '%s'.\nFile: %s\nLine: %s";
+				$msg = "PHP Unknown error ($num): Error number %s with the message '%s'.\nFile: %s\nLine: %s";
 			break;
 		}
 		
@@ -108,8 +108,8 @@ class Loader {
 			$result[] = sprintf(
 				$traceline,
 				$key,
-				$stackPoint['file'],
-				$stackPoint['line'],
+				(isset($stackPoint['file']) ? $stackPoint['file'] : 'N/A'),
+				(isset($stackPoint['line']) ? $stackPoint['line'] : 'N/A'),
 				$stackPoint['function'],
 				implode(', ', $stackPoint['args'])
 			);

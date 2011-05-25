@@ -22,17 +22,17 @@ defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 class STDOUT extends AbstractLogger {
 	
 	public function debug($file, $line, $message) {
-		echo '[DEBUG] '.$file.'/'.$line.': '.$message."\n";
+		echo '[DEBUG] '.$file.'('.$line.'): '.$message."\n";
 		return true;
 	}
 	
 	public function info($file, $line, $message) {
-		echo '[INFO] '.$file.'/'.$line.': '.$message."\n";
+		echo '[INFO] '.$file.'('.$line.'): '.$message."\n";
 		return true;
 	}
 	
 	public function warning($file, $line, $message) {
-		echo '[WARNING] '.$file.'/'.$line.': '.$message."\n";
+		echo '[WARNING] '.$file.'('.$line.'): '.$message."\n";
 		return true;
 	}
 	
