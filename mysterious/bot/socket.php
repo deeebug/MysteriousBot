@@ -24,11 +24,12 @@ class Socket extends Singleton {
 	private $queue_write = array();
 	private $_loop = true;
 	private $_sockets = array();
+	private $_sids = array();
 	
 	const LISTENER = 2;
 	const CLIENT = 4;
 
-	public function add_client($host, $port, $ssl, $callback) {
+	public function add_client($host, $port, $ssl, $callback, $name='') {
 		if ( $ssl === true ) $host = 'ssl://'.$host;
 		
 		$logger = Logger::get_instance();
@@ -53,10 +54,13 @@ class Socket extends Singleton {
 			'callback' => $callback
 		);
 		
+		if ( !empty($name) )
+			$this->_sids[$name] = $id;
+			
 		return $id;
 	}
 	
-	public function add_listener($ip, $port, $callback) {
+	public function add_listener($ip, $port, $callback, $name='') {
 		$logger = Logger::get_instance();
 		
 		if ( ($socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) === false ) {
@@ -82,13 +86,18 @@ class Socket extends Singleton {
 			'callback' => $callback
 		);
 		
+		if ( !empty($name) )
+			$this->_sids[$name] = $id;
+		
 		return $id;
 	}
 	
 	public function loop() {
 		while ( $this->_loop === true ) {
-			// Start with the timers
-			// ---timers go here
+			// First let's sleep a bit, to calm down...
+			usleep(40000);
+			
+			// Now start with the timers
 			//Timers::get_instance()->tik();
 			
 			// Get the logger instance
@@ -167,8 +176,6 @@ class Socket extends Singleton {
 					}
 				}
 			}
-			// Now that all the fuss is over, we finally...SLEEP!
-			usleep(1000);
 		}
 	}
 	
@@ -187,5 +194,13 @@ class Socket extends Singleton {
 				'payload'  => $pload."\r\n"
 			);
 		}
+	}
+	
+	public function getSID($name) {
+		return isset($this->_sids[$name]) ? $this->_sids[$name] : null;
+	}
+	
+	public function stop_loop() {
+		$this->_loop = false;
 	}
 }

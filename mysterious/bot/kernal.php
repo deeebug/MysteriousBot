@@ -24,6 +24,8 @@ use Mysterious\Bot\Socket;
 class Kernal extends Singleton {
 	public $IRC_SID;
 	public $SOCKET_SID;
+	
+	// Objects
 	private $bot;
 	private $sserver; // Socket Server
 	
@@ -79,10 +81,10 @@ class Kernal extends Singleton {
 			
 			$ip   = $config->get('socketserver.ip');
 			$port = $config->get('socketserver.port');
-			$this->SOCKET_SID = Socket::get_instance()->add_listener($ip, $port, array(__NAMESPACE__.'\SocketServer', 'handle_read'));
+			$this->SOCKET_SID = Socket::get_instance()->add_listener($ip, $port, array(__NAMESPACE__.'\SocketServer', 'handle_read'), 'socketserver');
 		}
 		
-		// Finally, lets init the bot
+		// Finally, lets init the bot(s)
 		$class = __NAMESPACE__.'\IRC\\'.ucfirst(strtolower(Config::get_instance()->get('connection.type')));
 		$this->bot = $class::get_instance();
 		
@@ -97,7 +99,7 @@ class Kernal extends Singleton {
 		$ssl  = $config->get('connection.ssl');
 		
 		$SM = Socket::get_instance();
-		$this->IRC_SID = $SM->add_client($host, $port, $ssl, array($this->bot, 'handle_read'));
+		$this->IRC_SID = $SM->add_client($host, $port, $ssl, array($this->bot, 'handle_read'), 'irc');
 		$this->bot->set_sid($this->IRC_SID);
 		
 		$SM->loop();
@@ -109,6 +111,12 @@ class Kernal extends Singleton {
 		Logger::get_instance()->fatal(__FILE__, __LINE__, 'Loop has finished! :(');
 		
 		return $this;
+	}
+	
+	public function write($sid, $payload) {
+		if ( empty($sid) )     $sid = $this->IRC_SID;
+		if ( empty($payload) ) return;
+		Socket::get_instance()->write($sid, $payload);
 	}
 }
 
