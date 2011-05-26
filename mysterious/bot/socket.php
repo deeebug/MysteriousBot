@@ -29,7 +29,7 @@ class Socket extends Singleton {
 	const LISTENER = 2;
 	const CLIENT = 4;
 
-	public function add_client($host, $port, $ssl, $callback, $name='') {
+	public function add_client($host, $port, $ssl=false, $callback, $name='') {
 		if ( $ssl === true ) $host = 'ssl://'.$host;
 		
 		$logger = Logger::get_instance();
@@ -56,6 +56,8 @@ class Socket extends Singleton {
 		
 		if ( !empty($name) )
 			$this->_sids[$name] = $id;
+			
+		$logger->debug(__FILE__, __LINE__, 'Added a new client. Name: '.$name.' Sid: '.$id);
 			
 		return $id;
 	}

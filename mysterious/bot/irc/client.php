@@ -18,41 +18,28 @@
 namespace Mysterious\Bot\IRC;
 defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 
-use Mysterious\Singleton;
 use Mysterious\Bot\Config;
 use Mysterious\Bot\Logger;
 use Mysterious\Bot\Socket;
 #use Mysterious\Bot\Event;
 #use Mysterious\Bot\Channels\Manager AS ChannelManager;
 
-class Client extends Singleton {
+class Client {
 	private $_connected = false;
+	private $_curnick;
 	private $_lastping;
 	private $_sid;
-	private $_curnick;
+	private $_settings;
+	
+	public function __construct($settings) {
+		$this->_settings = $settings;
+	}
 	
 	public function set_sid($sid) {
 		$this->_sid = $sid;
 	}
 	
-	public function handle_read($sid, $raw) {
-		if ( $sid != $this->_sid ) return; // Why?! Only one instance ATM.
-		
-		// Lets parse the message
-		$data = array(
-			'raw' => $raw,
-			'rawparts' => explode(' ', $raw),
-			'socketid' => $sid
-		);
-		
-		try {
-			$parsed = Parser::new_instance($raw);
-		} catch ( IRCParserException $e ) {
-			Logger::get_instance()->warning(__FILE__, __LINE__, 'The IRC Parser threw an error! '.$e->getMessage());
-			return;
-		}
-		$data = array_merge($data, $parsed);
-		
+	public function on_raw($data) {
 		// Are we even connected? Send out welcome message!
 		if ( $this->_connected === false ) {
 			$this->send_welcome();
@@ -63,15 +50,10 @@ class Client extends Singleton {
 		}
 		
 		// Do the ping. We won't plugins handle it, we want the ping out ASAP!
-		if ( substr($raw, 0, 4) == 'PING' ) {
+		if ( substr($data['raw'], 0, 4) == 'PING' ) {
 			$this->_lastping = time();
-			$this->raw('PONG '.substr($raw, 5));
-			return;
-		}
-		
-		// No type, then WTF are you?
-		if ( (!isset($data['type']) || empty($data['type'])) && (!isset($data['command']) || empty($data['command'])) ) {
-			Logger::get_instance()->debug(__FILE__, __LINE__, '[IRC] Empty type - Printing data');
+			Logger::get_instance()->debug(__FILE__, __LINE__, '[IRC] Ping? Pong!');
+			$this->raw('PONG '.substr($data['raw'], 5));
 			return;
 		}
 		
@@ -103,18 +85,6 @@ class Client extends Singleton {
 			print_r($data);
 		}
 		
-		if ( $data['command'] === 'JOIN' ) {
-			print_r($data);
-		}
-		
-		if ( $data['command'] === 'PART' ) {
-			print_r($data);
-		}
-		
-		if ( $data['command'] === 'QUIT' ) {
-			print_r($data);
-		}
-		
 		// Send it out to the Plugin System
 		//Event::cast($data['type'], $data);
 	}
@@ -128,20 +98,19 @@ class Client extends Singleton {
 	//=========================================================
 	
 	private function send_welcome() {
-		$config = Config::get_instance();
 		$out = array();
 		
-		if ( $config->get('connection.password') !== false && $config->get('connection.password') != '' )
-			$out[] = 'PASS '.$config->get('connection.password');
+		if ( isset($this->_settings['password']) && $this->_settings['password'] != '' )
+			$out[] = 'PASS '.$this->_settings['password'];
 		
-		$out[] = 'USER '.$config->get('irc.ident').' 2 * :'.$config->get('irc.name');
-		$out[] = 'NICK '.$config->get('irc.nick');
+		$out[] = 'USER '.$this->_settings['ident'].' 2 * :'.$this->_settings['name'];
+		$out[] = 'NICK '.$this->_settings['nick'];
 		
-		if ( $config->get('irc.oper.use') !== false ) {
-			$out[] = 'OPER '.$config->get('irc.oper.username').' '.$config->get('irc.oper.password');
+		if ( isset($this->_settings['oper']) && $this->_settings['oper']['use'] === true ) {
+			$out[] = 'OPER '.$this->_settings['oper']['username'].' '.$this->_settings['oper']['password'];
 		}
 		
 		$this->raw($out);
-		$this->curnick = $config->get('irc.nick');
+		$this->curnick = $this->_settings['nick'];
 	}
 }

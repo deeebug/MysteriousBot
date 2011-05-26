@@ -22,43 +22,104 @@ defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 return array(
 	'debug' => true, // Enable debug-mode?
 	
-	'connection' => array(
-		'type' => 'client', // Valid types are 'server' or 'client'. Server requires a linkpass, client doesn't.
-		'linkpass' => 'my_linkpass_here', // If your type above is server, it requires a linkpass
-		'linkname' => 'my.mysterious.bot', // The linked server's name. Again, requires type to be server
-		
-		'server' => 'localhost', // The IRC Server. REQUIRED.
-		'port' => 6667, // The IRC Server PORT. REQUIRED.
-		'ssl' => false, // Use ssl?
-		'password' => '', // If the IRC server requires a password to connect, put it here.
-		'pingfrequency' => 60*3, // How long to send a ping to the server, if the bot has not recieved a PING request yet. Currently 3 minutes.
-		
-		// The following config is only used when the connection type is server.
-		'servercfg' => array(
-			'clients' => array(
+	'clients' => array(
+		'mysteriousbot001' => array(
+			// Bare settings
+			'enabled'  => true,
+			'type'     => 'client',
 			
-				// Please view the docs/server_clients.txt file, for the syntax
-				// The following will spawn 2 clients, with the name "MysteriousClient1" and "MysteriousClient2"
-				'client1' => array(
-					'nick' => 'MysteriousClient1',
-					'ident' => 'client',
-					'name' => 'Mysterious Client',
-					'modes' => 'bir',
+			// Connection settings
+			'server'   => 'localhost',
+			'port'     => 6667,
+			'ssl'      => false,
+			'nick'     => 'MysteriousBot',
+			'ident'    => 'mysterious',
+			'name'     => 'Mysterious Bot 001',
+			
+			// Optional settings
+			'nickserv' => array(
+				'use'      => false,
+				'nick'     => 'NickServ',
+				'password' => 'mys3kr3tp@ass',
+				'ghost'    => true,
+			),
+			
+			'oper'     => array(
+				'use'      => true,
+				'username' => 'debug',
+				'password' => 'debug',
+			),
+			
+			'autojoin' => array(
+				'#mysteriousbot',
+				'#test01',
+			),
+		),
+		
+		'mysteriousbot002' => array(
+			// Bare settings
+			'enabled'  => false,
+			'type'     => 'server',
+			
+			// Connection settings
+			'server'   => 'localhost',
+			'port'     => 6667,
+			'ssl'      => false,
+			'linkpass' => 'linkpass01',
+			'linkname' => 'bots.mysterious.bot',
+			'linkdesc' => 'MysteriousBot U:Lined Server',
+			
+			// Clients - ATLEAST ONE IS REQUIRED.
+			'clients'  => array(
+				'global' => array(
+					// Client settings
+					'nick'  => 'Global[Mysterious]',
+					'ident' => 'mysterious',
+					'name'  => 'MysteriousBot Bots',
+					'mode'  => 'Sq',
+					
 					'autojoin' => array(
-						'#clients',
-					),
-				),
-				
-				'client2' => array(
-					'nick' => 'MysteriousClient1',
-					'ident' => 'client',
-					'name' => 'Mysterious Client',
-					'modes' => 'bir',
-					'autojoin' => array(
-						'#clients',
+						'#mysteriousbot-ulined',
+						'#test01-ulined',
 					),
 				),
 			),
+		),
+		
+		'mysteriousbot003' => array(
+			// Bare settings
+			'enabled'  => true,
+			'type'     => 'client',
+			
+			// Connection settings
+			'server'   => 'localhost',
+			'port'     => 6667,
+			'ssl'      => false,
+			'nick'     => 'MysteriousBot2',
+			'ident'    => 'mysterious',
+			'name'     => 'Mysterious Bot 003',
+			
+			// Optional settings
+			'nickserv' => array(
+				'use'      => false,
+				'nick'     => 'NickServ',
+				'password' => 'mys3kr3tp@ass',
+				'ghost'    => true,
+			),
+			
+			'oper'     => array(
+				'use'      => true,
+				'username' => 'debug',
+				'password' => 'debug',
+			),
+			
+			'autojoin' => array(
+				'#mysteriousbot',
+				'#test01',
+			),
+			
+			// Optional Settings
+			'globalchan' => '#services', // All bots will be found here
 		),
 	),
 	
@@ -91,30 +152,6 @@ return array(
 		),
 	),
 	
-	'irc' => array(
-		'nickserv' => array(
-			'use' => false, // If you identify to nickserv, change false to true
-			'nick' => 'NickServ', // If the nickserv service is different than nickserv, put it here
-			'password' => 'mys3kretpass', // Your nickserv password
-			'auto_ghost' => true, // To auto ghost, if someone has the nick
-		),
-		
-		'oper' => array(
-			'use' => true, // If you have an O:Line aka oper, change false to true
-			'username' => 'debug', // Your O:Line username
-			'password' => 'debug', // Your O:Line password
-		),
-		
-		'nick' => 'MysteriousBot', // Your IRC Nickname
-		'ident' => 'mysterious', // Your IRC 'ident'
-		'name' => 'Mysterious Bot', // Your IRC Real Name
-		
-		'autojoin' => array(
-			'#mysteriousbot',
-			'#logging',
-		),
-	),
-	
 	'autoload' => array(
 		'', // Autoload plugins. Must be in the /plugins dir. Put each name on a new line.
 	),
@@ -129,7 +166,7 @@ return array(
 		// 'name' => 'reply',
 		'__default' => 'WaDDuDoIN?', //This is the default reply for ANY NON-SET CTCP REPLY. Keep blank, if you want no reply.
 		'version'   => 'MysteriousBot v'.MYSTERIOUSBOT_VERSION,
-		'source'    => 'https://github.com/deeebug/mysteriousbot'
+		'source'    => 'https://github.com/deeebug/mysteriousbot',
 		'finger'    => 'Don\'t finger me!',
 	),
 	

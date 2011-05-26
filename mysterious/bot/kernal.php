@@ -20,9 +20,9 @@ defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 
 use Mysterious\Singleton;
 use Mysterious\Bot\Socket;
+use Mysterious\Bot\IRC\BotManager;
 
 class Kernal extends Singleton {
-	public $IRC_SID;
 	public $SOCKET_SID;
 	
 	// Objects
@@ -31,41 +31,16 @@ class Kernal extends Singleton {
 	
 	public function initialize() {
 		// Are we even on the CLI?
-		if ( !defined('IS_CLI') ) {
+		if ( !defined('IS_CLI') )
 			throw new KernalError('Fatal error - Please run MysteriousBot from the command line!');
-		}
-		
-		// First we make sure they edited the config correctly
-		$required_settings = array(
-			'connection.type', 'connection.server', 'connection.port',
-			'irc.nick', 'irc.ident', 'irc.name',
-			'yes_i_edited_this'
-		);
 		
 		$config = Config::get_instance();
+		$this->bot = BotManager::get_instance();
+		$SM = Socket::get_instance();
 		
-		foreach ( $required_settings AS $setting ) {
-			if ( $config->get($setting) === false || is_empty($config->get($setting)) ) {
-				throw new KernalError('Configuration error - The setting "'.$setting.'" is not set/empty! Please double check the config file, edit fully, and read all comments and documentation!');
-			}
-		}
-		
-		if ( !in_array($config->get('connection.type', 'N/A'), array('client', 'server')) ) {
-			throw new KernalError('Configuration error - The connection type must be either "client" or "server"!  The value it currently has is '.$config->get('connection.type'));
-		}
-		
-		// Check if they completely edited for the server settings.
-		if ( $config->get('connection.type') == 'server' ) {
-			$required_settings = array(
-				'connection.linkpass', 'connection.linkname'
-			);
-			
-			foreach ( $required_settings AS $setting ) {
-				if ( $config->get($setting) === false || is_empty($config->get($setting)) ) {
-					throw new KernalError('Configuration error - The setting "'.$setting.'" is not set/empty! Please double check the config file, edit fully, and read all comments and documentation!');
-				}
-			}
-		}
+		// Did they edit the "yes_i_edited_this" key?
+		if ( $config->get('yes_i_edited_this') === false )
+			throw new KernalError('Configuration error - Please change the key "yes_i_edited_this" to true! (Hint: Its at the bottom of the file)');
 		
 		// Now lets start the socket server, if they enabled it
 		if ( $config->get('socketserver.enabled') === true ) {
@@ -81,26 +56,69 @@ class Kernal extends Singleton {
 			
 			$ip   = $config->get('socketserver.ip');
 			$port = $config->get('socketserver.port');
-			$this->SOCKET_SID = Socket::get_instance()->add_listener($ip, $port, array(__NAMESPACE__.'\SocketServer', 'handle_read'), 'socketserver');
+			$this->SOCKET_SID = $SM->add_listener($ip, $port, array(__NAMESPACE__.'\SocketServer', 'handle_read'), 'socketserver');
 		}
 		
-		// Finally, lets init the bot(s)
-		$class = __NAMESPACE__.'\IRC\\'.ucfirst(strtolower(Config::get_instance()->get('connection.type')));
-		$this->bot = $class::get_instance();
+		foreach ( $config->get('clients') AS $uuid => $settings ) {
+			if ( $settings['enabled'] === false ) continue;
+			
+			// Get the required settings for each type, and verify the type.
+			switch ( strtolower($settings['type']) ) {
+				case 'client':
+					$required_settings = array(
+						'server', 'port', 'nick', 'ident', 'name'
+					);
+					$one_client = false;
+					$func = 'create_client';
+				break;
+				
+				case 'server':
+					$required_settings = array(
+						'server', 'port', 'linkpass', 'linkname', 'linkdesc'
+					);
+					$one_client = true;
+					$func = 'create_server';
+				break;
+				
+				default:
+					throw new KernalError('Configuration error - Unknown type for client id '.$uuid.' (clients.'.$uuid.'.type)');
+				break;
+			}
+			
+			foreach ( $required_settings AS $setting ) {
+				if ( $config->get('clients.'.$uuid.'.'.$setting) === false || is_empty($config->get('clients.'.$uuid.'.'.$setting)) ) {
+					throw new KernalError('Configuration error - '.$settings['type'].' requires setting '.$setting.' to be set/not empty. (clients.'.$uuid.'.'.$setting.')');
+				}
+			}
+			
+			if ( $one_client === true ) {
+				if ( !isset($settings['clients']) || count($settings['clients']) < 1 ) {
+					throw new KernalError('Configuration error - '.$settings['type'].' requires atleast one client set in the sub-block of itself.');
+				}
+			}
+			
+			// We have SSL?
+			if ( !isset($settings['ssl']) )
+				$settings['ssl'] = false;
+			
+			// Create it!
+			$this->bot->$func($uuid, $settings);
+			
+			// Now lets get the socket running.
+			$socketid = $SM->add_client($settings['server'], $settings['port'], $settings['ssl'], array($this->bot, 'handle_read'), $uuid);
+			$this->bot->set_sid($uuid, $socketid);
+		}
 		
-		// They pass the test..let them continue
+		// Everything is ready!
 		return $this;
 	}
 	
 	public function loop() {
+		$SM = Socket::get_instance();
 		$config = Config::get_instance();
 		$host = $config->get('connection.server');
 		$port = $config->get('connection.port');
 		$ssl  = $config->get('connection.ssl');
-		
-		$SM = Socket::get_instance();
-		$this->IRC_SID = $SM->add_client($host, $port, $ssl, array($this->bot, 'handle_read'), 'irc');
-		$this->bot->set_sid($this->IRC_SID);
 		
 		$SM->loop();
 		
@@ -114,7 +132,7 @@ class Kernal extends Singleton {
 	}
 	
 	public function write($sid, $payload) {
-		if ( empty($sid) )     $sid = $this->IRC_SID;
+		if ( empty($sid) )     return;
 		if ( empty($payload) ) return;
 		Socket::get_instance()->write($sid, $payload);
 	}
