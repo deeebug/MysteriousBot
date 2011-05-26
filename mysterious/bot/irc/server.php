@@ -88,7 +88,6 @@ class Server {
 			else
 				$host = $this->_settings['linkname'];
 			
-			//this->send_data('NICK', 'Defcon 2 '.time().' Defcon '.$config['linkname'].' '.$config['linkname'].' 0 :Defcon');
 			$welcome = 'NICK '.$settings['nick'].' 2 '.time().' '.$settings['ident'].' '.$host.' '.$this->_settings['linkname'].' 0 :'.$settings['name'];
 			
 			if ( isset($settings['mode']) && !empty($settings['mode']) )
