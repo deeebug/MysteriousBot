@@ -123,6 +123,7 @@ class Parser {
 			}
 			
 			// Is it a join, well they are different!
+			/*
 			if ( $msg['command'] === 'JOIN' ) {
 				$tmp = explode('!', substr(self::$prefix, 1));
 				$nick = $tmp[0];
@@ -136,6 +137,7 @@ class Parser {
 				self::$channel = self::$params[0];
 				self::$servername = '';
 			}
+			*/
 			
 			if ( $msg['command'] === 'PART' ) {
 				self::$channel = self::$params[0];
@@ -143,7 +145,7 @@ class Parser {
 			
 			return self::format();
 		} else {
-			throw new IRCParserException('Message passed to IRCMessage constructor in invalid format ($message).');
+			throw new IRCParserException('Message passed to IRCMessage constructor in invalid format ('.$message.').');
 		}
 	}
 	

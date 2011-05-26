@@ -19,6 +19,7 @@ namespace Mysterious\Bot\IRC;
 defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 
 use Mysterious\Singleton;
+use Mysterious\Bot\Logger;
 
 class BotManager extends Singleton {
 	private $_bots = array();
@@ -34,7 +35,7 @@ class BotManager extends Singleton {
 	public function create_server($uuid, $settings) {
 		if ( isset($this->_bots[$uuid]) ) throw new BotManagerError('Bot UUID '.$uuid.' is already set! Maybe it is not so unique?');
 		
-		throw new BotManagerError(__METHOD__ .' is not yet supported.');
+		$this->_bots[$uuid] = new Server($settings);
 	}
 	
 	public function set_sid($uuid, $sid) {

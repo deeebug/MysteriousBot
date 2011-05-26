@@ -32,7 +32,7 @@ return array(
 			'server'   => 'localhost',
 			'port'     => 6667,
 			'ssl'      => false,
-			'nick'     => 'MysteriousBot',
+			'nick'     => 'Client01-Client',
 			'ident'    => 'mysterious',
 			'name'     => 'Mysterious Bot 001',
 			
@@ -58,15 +58,15 @@ return array(
 		
 		'mysteriousbot002' => array(
 			// Bare settings
-			'enabled'  => false,
+			'enabled'  => true,
 			'type'     => 'server',
 			
 			// Connection settings
 			'server'   => 'localhost',
 			'port'     => 6667,
 			'ssl'      => false,
-			'linkpass' => 'linkpass01',
-			'linkname' => 'bots.mysterious.bot',
+			'linkpass' => 'LiNk',
+			'linkname' => 'mysteriousbot.com',
 			'linkdesc' => 'MysteriousBot U:Lined Server',
 			
 			// Clients - ATLEAST ONE IS REQUIRED.
@@ -75,6 +75,7 @@ return array(
 					// Client settings
 					'nick'  => 'Global[Mysterious]',
 					'ident' => 'mysterious',
+					'host'  => 'zomg.hello',
 					'name'  => 'MysteriousBot Bots',
 					'mode'  => 'Sq',
 					
@@ -83,7 +84,36 @@ return array(
 						'#test01-ulined',
 					),
 				),
+				
+				'client1' => array(
+					// Client settings
+					'nick'  => 'Client01-Server',
+					'ident' => 'client',
+					'host'  => '01',
+					'name'  => 'The Client 01',
+					'mode'  => 'Sq',
+					
+					'autojoin' => array(
+						'#opers',
+					),
+				),
+				
+				'client2' => array(
+					// Client settings
+					'nick'  => 'Client02-Server',
+					'ident' => 'client',
+					'host'  => '02',
+					'name'  => 'The Client 02',
+					'mode'  => 'Sq',
+					
+					'autojoin' => array(
+						'#opers',
+					),
+				),
 			),
+			
+			// Optional Settings
+			'globalchan' => '#services', // All bots will be found here
 		),
 		
 		'mysteriousbot003' => array(
@@ -95,7 +125,7 @@ return array(
 			'server'   => 'localhost',
 			'port'     => 6667,
 			'ssl'      => false,
-			'nick'     => 'MysteriousBot2',
+			'nick'     => 'Client02-Client',
 			'ident'    => 'mysterious',
 			'name'     => 'Mysterious Bot 003',
 			
@@ -117,9 +147,6 @@ return array(
 				'#mysteriousbot',
 				'#test01',
 			),
-			
-			// Optional Settings
-			'globalchan' => '#services', // All bots will be found here
 		),
 	),
 	
