@@ -54,6 +54,11 @@ return array(
 				'#mysteriousbot',
 				'#test01',
 			),
+			
+			// What plugins will be used by the bot.
+			'plugins' => array(
+				'exampleplugin'
+			),
 		),
 		
 		'mysteriousbot002' => array(

@@ -11,8 +11,8 @@
 ##  [?] File name: botmanager.php                     ##
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
-##  [*] Created: 5/25/2011                            ##
-##  [*] Last edit: 5/25/2011                          ##
+##  [*] Created: 5/26/2011                            ##
+##  [*] Last edit: 5/26/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot\IRC;
@@ -20,6 +20,7 @@ defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 
 use Mysterious\Singleton;
 use Mysterious\Bot\Logger;
+use Mysterious\Bot\Socket;
 
 class BotManager extends Singleton {
 	private $_bots = array();
@@ -76,6 +77,10 @@ class BotManager extends Singleton {
 	public function destroy_bot($uuid) {
 		unset($this->_bots[$uuid]);
 		return true;
+	}
+	
+	public function write($bot, $payload) {
+		Socket::get_instance()->write($this->_bot2sid[$bot], $payload);
 	}
 }
 

@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 5/24/2011                          ##
+##  [*] Last edit: 5/26/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -100,7 +100,7 @@ class Socket extends Singleton {
 			usleep(40000);
 			
 			// Now start with the timers
-			//Timers::get_instance()->tik();
+			Timers::tik();
 			
 			// Get the logger instance
 			$logger = Logger::get_instance();

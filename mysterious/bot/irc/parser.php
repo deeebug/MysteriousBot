@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/25/2011                            ##
-##  [*] Last edit: 5/25/2011                          ##
+##  [*] Last edit: 5/26/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot\IRC;

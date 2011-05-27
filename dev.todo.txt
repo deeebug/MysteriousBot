@@ -1,29 +1,6 @@
 ToDo:
 	1. Bot functions
-	2. Server - Write + Test
-	3. SocketServer - Write + Test
-	4. Test Multiple sockets
-	5. Ability to spawn multiple clients
-	
-Flow for init'ing
-
-Kernal::init
-	-- checks for cli, blah blah
-	-- required stuff
-	-- checks for basic config
-	-- checks connection type
-	-- passes to kernal::setup_(CONNECTION TYPE)
-
-	Kernal::setup_client()
-		-- checks for config
-		-- foreach clients as bot
-			-- gen uuid for bot (uniquid('BOT"))
-			-- BotManager::new_bot(uuid)
-			-- $sid = Socket::add_client(server, port, ssl, BotManager::handle_read)
-			-- BotManager::set_sid(uuid, sid)
-		-- goto Kernal::loop
-	
-	Kernal::setup_server
-		-- same as CURRENT spawn client
-
-** MAY CHANGE
+	2. Events
+	3. Plugins
+	4. Parser
+	5. SocketServer - Write + Test

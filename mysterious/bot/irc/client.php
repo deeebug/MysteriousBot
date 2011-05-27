@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 5/24/2011                          ##
+##  [*] Last edit: 5/26/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot\IRC;
@@ -86,7 +86,7 @@ class Client {
 		}
 		
 		// Send it out to the Plugin System
-		//Event::cast($data['type'], $data);
+		//Event::cast('irc.'.$data['type'], $data);
 	}
 	
 	public function raw($payload) {

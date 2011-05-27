@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 5/24/2011                          ##
+##  [*] Last edit: 5/26/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot\IRC;
@@ -55,7 +55,7 @@ class Server {
 		}
 		
 		// Send it out to the Plugin System
-		//Event::cast($data['type'], $data);
+		//Event::cast('irc'.$data['type'], $data);
 	}
 	
 	public function raw($payload) {
@@ -72,6 +72,8 @@ class Server {
 		$out[] = 'PASS '.$this->_settings['linkpass'];
 		$out[] = 'SERVER '.$this->_settings['linkname'].' 1 :'.$this->_settings['linkdesc'];
 		$out[] = 'EOS';
+		
+		$this->raw($out);
 		
 		foreach ( $this->_settings['clients'] AS $botuuid => $settings ) {
 			$required_settings = array(
