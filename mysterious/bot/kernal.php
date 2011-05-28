@@ -134,6 +134,10 @@ class Kernal extends Singleton {
 		return $this;
 	}
 	
+	public function stop_loop() {
+		Socket::get_instance()->stop_loop();
+	}
+	
 	public function write($sid, $payload) {
 		if ( empty($sid) )     return;
 		if ( empty($payload) ) return;

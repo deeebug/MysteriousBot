@@ -27,6 +27,9 @@ class Event {
 	private static $_events    = array();
 	
 	public static function cast($event, $data) {
+		// Add the event to the data
+		$data['event'] = $event;
+		
 		// Do the all respond event
 		if ( isset(self::$_events[self::RESPOND_ALL][$event]) ) {
 			foreach ( self::$_events[self::RESPOND_ALL][$event] AS $callback )
@@ -60,6 +63,8 @@ class Event {
 			else
 				$key = 'irc.privmsg.private';
 			
+			$data['event'] = $key;
+			
 			if ( isset(self::$_events[self::RESPOND_ALL][$key]) ) {
 				foreach ( self::$_events[self::RESPOND_ALL][$key] AS $callback )
 					call_user_func($callback, $data);
@@ -77,13 +82,18 @@ class Event {
 		if ( !empty($bot) ) $bot = BotManager::get_instance()->bot2sid($bot);
 		if ( empty($bot) )  $bot = self::RESPOND_ALL;
 		
+		if ( !empty($plugin) ) {
+			$plugin = explode('\\', $plugin);
+			$plugin = array_pop($plugin);
+		}
+		
 		if ( $bot == self::RESPOND_ALL )
 			self::$_events[$bot][$event][] = $callback;
 		else
 			self::$_events[$bot][$event][] = array($plugin, $callback);
 	}
 	
-	public static function register_command($event, $regex, $function, $plugin, $bot) {
+	public static function register_command($event, $regex, $function, $plugin, $bot=null) {
 		if ( empty($bot) ) throw new EventError('Register command is incorrectly called. Bot param is not passed');
 		if ( !empty($bot) ) $bot = BotManager::get_instance()->bot2sid($bot);
 		
@@ -96,12 +106,16 @@ class Event {
 		self::$_commands[$bot][] = array(
 			'regex'    => $regex,
 			'plugin'   => $plugin,
+			'event'    => $event,
 			'function' => $function
 		);
 	}
 	
 	public static function handle_command($data) {
 		foreach ( self::$_commands[$data['socketid']] AS $info ) {
+			// Let's make sure its the right event
+			if ( $data['event'] != $info['event'] ) continue;
+			
 			if ( preg_match($info['regex'], $data['message']) ) {
 				$bot = BotManager::get_instance()->sid2bot($data['socketid']);
 				$plugin = PluginManager::get_instance()->get_plugin($info['plugin'], $bot);

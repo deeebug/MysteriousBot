@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/25/2011                            ##
-##  [*] Last edit: 5/26/2011                          ##
+##  [*] Last edit: 5/27/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot\IRC;
@@ -141,6 +141,10 @@ class Parser {
 			
 			if ( $msg['command'] === 'PART' ) {
 				self::$channel = self::$params[0];
+			}
+			
+			if ( $msg['command'] == 'PRIVMSG' && substr(self::$channel, 0, 1) != '#' ) {
+				self::$channel = self::$nick;
 			}
 			
 			return self::format();

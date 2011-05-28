@@ -12,14 +12,15 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/26/2011                            ##
-##  [*] Last edit: 5/27/2011                          ##
+##  [*] Last edit: 5/28/2011                          ##
 ## ################################################## ##
 
 namespace Plugins;
 defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 
-use Mysterious\Bot\Plugin;
+use Mysterious\Bot\Kernal;
 use Mysterious\Bot\Message;
+use Mysterious\Bot\Plugin;
 
 class ExamplePlugin extends Plugin {
 	
@@ -29,13 +30,16 @@ class ExamplePlugin extends Plugin {
 		//$this->register_event('irc.privmsg', '/^!example/', 'cmd_example');
 		
 		// Privmsg, but as a PM
-		//$this->register_event('irc.privmsg.private', '!hello', 'cmd_hello');
+		$this->register_event('irc.privmsg.private', '!hello', 'cmd_hello');
 		
 		// Privmsg, but in channel
-		//$this->register_event('irc.privmsg.channel', '!test', 'cmd_test');
+		$this->register_event('irc.privmsg.channel', '!test', 'cmd_test');
 		
 		// Catch all
-		//$this->register_event('irc.privmsg', 'catchall');
+		$this->register_event('irc.privmsg', 'catchall');
+		
+		// Kill the bot off
+		$this->register_event('irc.privmsg', '!die', 'cmd_die');
 		
 		//$this->register_help('!example', 'The help info for !example');
 	}
@@ -44,10 +48,20 @@ class ExamplePlugin extends Plugin {
 		$this->privmsg(Message::channel(), 'Hello!');
 	}
 	
-	// ...etc
+	public function cmd_hello() {
+		$this->privmsg(Message::channel(), 'Test from a PM!!');
+	}
+	
+	public function cmd_test() {
+		$this->privmsg(Message::channel(), 'Test from the channel!');
+	}
+	
+	public function cmd_die() {
+		Kernal::get_instance()->stop_loop();
+	}
 	
 	public function catchall() {
-		//$this->privmsg(Message::$channel, strrev(Message::$message));
-		// Do nothing.
+		if ( Message::nick() != $this->config('nick', null) && rand(1,10) == rand(1,10) )
+			$this->privmsg(Message::channel(), strrev(Message::message()));
 	}
 }

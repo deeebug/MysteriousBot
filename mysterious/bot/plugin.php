@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/26/2011                            ##
-##  [*] Last edit: 5/27/2011                          ##
+##  [*] Last edit: 5/28/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -53,6 +53,10 @@ abstract class Plugin {
 		BotManager::get_instance()->get_bot($bot)->part($channel, $message);
 	}
 	
+	final public function config($item, $default=false) {
+		return Config::get_instance()->get('clients.'.$this->__bot.$item, $default);
+	}
+	
 	final public function register_event() {
 		$args = func_get_args();
 		$plugin = get_class($this);
@@ -72,9 +76,6 @@ abstract class Plugin {
 				
 				if ( substr($args[0], 0, 4) != 'irc.' )
 					$args[0] = 'irc.'.$args[0];
-				
-				if ( count(explode('.', $args[0])) == 2 && substr($args[0], 4, 11) == 'privmsg' )
-					$args[0] = $args[0].'.all';
 				
 				Event::register($args[0], $args[1], $plugin, $this->__bot);
 				Logger::get_instance()->debug(__FILE__, __LINE__, '[Plugin '.get_class($this).'] Registered new catch all for '.$args[0].' for bot '.$this->__bot);
