@@ -12,13 +12,14 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 5/26/2011                          ##
+##  [*] Last edit: 5/27/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot\IRC;
 defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 
 use Mysterious\Bot\Config;
+use Mysterious\Bot\Event;
 use Mysterious\Bot\Logger;
 use Mysterious\Bot\Socket;
 
@@ -38,10 +39,10 @@ class Server {
 	
 	public function on_raw($data) {
 		// Are we even connected? Send out welcome message!
-		if ( $this->_connected === false ) {
+		if ( $this->_connected === false && $data['command'] === 'NOTICE' ) {
 			$this->send_welcome();
-			$this->_lastping = time();
 			$this->_connected = true;
+			$this->_lastping = time();
 			
 			return;
 		}
@@ -55,7 +56,7 @@ class Server {
 		}
 		
 		// Send it out to the Plugin System
-		//Event::cast('irc'.$data['type'], $data);
+		Event::cast('irc'.strtolower($data['command']), $data);
 	}
 	
 	public function raw($payload) {
@@ -74,6 +75,7 @@ class Server {
 		$out[] = 'EOS';
 		
 		$this->raw($out);
+		$out = array();
 		
 		foreach ( $this->_settings['clients'] AS $botuuid => $settings ) {
 			$required_settings = array(

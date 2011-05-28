@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/23/2011                            ##
-##  [*] Last edit: 5/24/2011                          ##
+##  [*] Last edit: 5/27/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -108,6 +108,9 @@ class Kernal extends Singleton {
 			$socketid = $SM->add_client($settings['server'], $settings['port'], $settings['ssl'], array($this->bot, 'handle_read'), $uuid);
 			$this->bot->set_sid($uuid, $socketid);
 		}
+		
+		// Start the plugin manager
+		PluginManager::get_instance()->do_autoload();
 		
 		// Everything is ready!
 		return $this;

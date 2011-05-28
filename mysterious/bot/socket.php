@@ -100,7 +100,7 @@ class Socket extends Singleton {
 			usleep(40000);
 			
 			// Now start with the timers
-			Timers::tik();
+			Timer::tik();
 			
 			// Get the logger instance
 			$logger = Logger::get_instance();

@@ -12,17 +12,17 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 5/26/2011                          ##
+##  [*] Last edit: 5/27/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot\IRC;
 defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 
 use Mysterious\Bot\Config;
+#use Mysterious\Bot\Channels\Manager AS ChannelManager;
+use Mysterious\Bot\Event;
 use Mysterious\Bot\Logger;
 use Mysterious\Bot\Socket;
-#use Mysterious\Bot\Event;
-#use Mysterious\Bot\Channels\Manager AS ChannelManager;
 
 class Client {
 	private $_connected = false;
@@ -86,11 +86,27 @@ class Client {
 		}
 		
 		// Send it out to the Plugin System
-		//Event::cast('irc.'.$data['type'], $data);
+		Event::cast('irc.'.strtolower($data['command']), $data);
 	}
 	
 	public function raw($payload) {
 		Socket::get_instance()->write($this->_sid, $payload);
+	}
+	
+	public function privmsg($channel, $message) {
+		$this->raw('PRIVMSG '.$channel.' :'.$message);
+	}
+	
+	public function notice($to, $message) {
+		$this->raw('NOTICE '.$to.' :'.$message);
+	}
+	
+	public function join($channel, $key=null) {
+		$this->raw('JOIN '.$channel.' '.$key);
+	}
+	
+	public function part($channel, $message) {
+		$this->raw('PART '.$channel.' :'.$message);
 	}
 	
 	//=========================================================

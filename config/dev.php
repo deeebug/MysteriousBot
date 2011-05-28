@@ -14,7 +14,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 5/24/2011                          ##
+##  [*] Last edit: 5/27/2011                          ##
 ## ################################################## ##
 
 defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
@@ -63,7 +63,7 @@ return array(
 		
 		'mysteriousbot002' => array(
 			// Bare settings
-			'enabled'  => true,
+			'enabled'  => false,
 			'type'     => 'server',
 			
 			// Connection settings
@@ -96,7 +96,7 @@ return array(
 					'ident' => 'client',
 					'host'  => '01',
 					'name'  => 'The Client 01',
-					'mode'  => 'Sq',
+					'mode'  => 'BSq',
 					
 					'autojoin' => array(
 						'#opers',
@@ -109,7 +109,7 @@ return array(
 					'ident' => 'client',
 					'host'  => '02',
 					'name'  => 'The Client 02',
-					'mode'  => 'Sq',
+					'mode'  => 'BSq',
 					
 					'autojoin' => array(
 						'#opers',
@@ -118,12 +118,12 @@ return array(
 			),
 			
 			// Optional Settings
-			'globalchan' => '#services', // All bots will be found here
+			'globalchan' => '#opers', // All bots will be found here
 		),
 		
 		'mysteriousbot003' => array(
 			// Bare settings
-			'enabled'  => true,
+			'enabled'  => false,
 			'type'     => 'client',
 			
 			// Connection settings
@@ -185,7 +185,7 @@ return array(
 	),
 	
 	'autoload' => array(
-		'', // Autoload plugins. Must be in the /plugins dir. Put each name on a new line.
+		'exampleplugin', // Autoload plugins. Must be in the /plugins dir. Put each name on a new line.
 	),
 	
 	'logger' => array(

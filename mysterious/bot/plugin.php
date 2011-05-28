@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/26/2011                            ##
-##  [*] Last edit: 5/26/2011                          ##
+##  [*] Last edit: 5/27/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -23,33 +23,79 @@ use Mysterious\Bot\IRC\BotManager;
 abstract class Plugin {
 	private $__bot;
 	
-	abstract public function __initialize();
+	final public function __construct() { }
 	
 	final public function __setbot($bot) {
 		$this->__bot = $bot;
 	}
 	
-	final private function privmsg($channel, $message, $bot=null) {
+	final public function privmsg($channel, $message, $bot=null) {
 		if ( empty($bot) ) $bot = $this->__bot;
 		
-		BotManager::get_bot($bot)->privmsg($channel, $message);
+		BotManager::get_instance()->get_bot($bot)->privmsg($channel, $message);
 	}
 	
-	final private function notice($to, $message, $bot=null) {
+	final public function notice($to, $message, $bot=null) {
 		if ( empty($bot) ) $bot = $this->__bot;
 		
-		BotManager::get_bot($bot)->notice($to, $message);
+		BotManager::get_instance()->get_bot($bot)->notice($to, $message);
 	}
 	
-	final private function join($channel, $bot=null) {
+	final public function join($channel, $key=null, $bot=null) {
 		if ( empty($bot) ) $bot = $this->__bot;
 		
-		BotManager::get_bot($bot)->join($channel);
+		BotManager::get_instance()->get_bot($bot)->join($channel, $key);
 	}
 	
-	final private function part($channel, $message=null, $bot=null) {
+	final public function part($channel, $message=null, $bot=null) {
 		if ( empty($bot) ) $bot = $this->__bot;
 		
-		BotManager::get_bot($bot)->part($channel, $message);
+		BotManager::get_instance()->get_bot($bot)->part($channel, $message);
+	}
+	
+	final public function register_event() {
+		$args = func_get_args();
+		$plugin = get_class($this);
+		
+		switch ( count($args) ) {
+			// I dunno what this is, but IMA RETURN FALSE IT
+			case 0:
+			case 1:
+			default:
+				Logger::get_instance()->warning(__FILE__, __LINE__, '[IRC Bot ('.$this->__bot.') - Plugin '.get_class($this).'] '.count($args).' was passed, but register_event only supports 2/3 args passed');
+				return false;
+			break;
+			
+			// It's a catch all
+			case 2:
+				$args[0] = strtolower($args[0]);
+				
+				if ( substr($args[0], 0, 4) != 'irc.' )
+					$args[0] = 'irc.'.$args[0];
+				
+				if ( count(explode('.', $args[0])) == 2 && substr($args[0], 4, 11) == 'privmsg' )
+					$args[0] = $args[0].'.all';
+				
+				Event::register($args[0], $args[1], $plugin, $this->__bot);
+				Logger::get_instance()->debug(__FILE__, __LINE__, '[Plugin '.get_class($this).'] Registered new catch all for '.$args[0].' for bot '.$this->__bot);
+			break;
+			
+			// Its a specific command, or regex.
+			case 3:
+				$args[0] = strtolower($args[0]);
+				
+				if ( substr($args[0], 0, 4) != 'irc.' )
+					$args[0] = 'irc.'.$args[0];
+				
+				// It's not a regex, so make it one
+				if ( substr($args[1], 0, 1) != '/' && substr($args[1], -1) != '/' )
+					$args[1] = '/^'.$args[1].'/';
+				
+				Event::register_command($args[0], $args[1], $args[2], $plugin, $this->__bot);
+				Logger::get_instance()->debug(__FILE__, __LINE__, '[Plugin '.get_class($this).'] Registered new command for '.$args[1].' ('.$args[0].') for bot '.$this->__bot);
+			break;
+		}
+		
+		return true;
 	}
 }

@@ -21,6 +21,7 @@ defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 use Mysterious\Singleton;
 use Mysterious\Bot\Logger;
 use Mysterious\Bot\Socket;
+use Mysterious\Bot\Message;
 
 class BotManager extends Singleton {
 	private $_bots = array();
@@ -66,12 +67,23 @@ class BotManager extends Singleton {
 		}
 		$data = array_merge($data, $parsed);
 		
+		// Send it to the global Message class (for plugins, etc)
+		Message::__newdata($data);
+		
 		// Pass it to the bot. :)
 		call_user_func(array($this->get_bot($this->_sid2bot[$sid]), 'on_raw'), $data);
 	}
 	
 	public function get_bot($uuid) {
 		return isset($this->_bots[$uuid]) ? $this->_bots[$uuid] : null;
+	}
+	
+	public function bot2sid($bot) {
+		return isset($this->_bot2sid[$bot]) ? $this->_bot2sid[$bot] : null;
+	}
+	
+	public function sid2bot($sid) {
+		return isset($this->_sid2bot[$sid]) ? $this->_sid2bot[$sid] : null;
 	}
 	
 	public function destroy_bot($uuid) {
