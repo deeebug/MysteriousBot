@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/23/2011                            ##
-##  [*] Last edit: 5/27/2011                          ##
+##  [*] Last edit: 5/28/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -59,6 +59,7 @@ class Kernal extends Singleton {
 			$this->SOCKET_SID = $SM->add_listener($ip, $port, array(__NAMESPACE__.'\SocketServer', 'handle_read'), 'socketserver');
 		}
 		
+		$setup = false;
 		foreach ( $config->get('clients') AS $uuid => $settings ) {
 			if ( $settings['enabled'] === false ) continue;
 			
@@ -107,6 +108,11 @@ class Kernal extends Singleton {
 			// Now lets get the socket running.
 			$socketid = $SM->add_client($settings['server'], $settings['port'], $settings['ssl'], array($this->bot, 'handle_read'), $uuid);
 			$this->bot->set_sid($uuid, $socketid);
+			$setup = true;
+		}
+		
+		if ( $setup === false ) {
+			throw new KernalError('No clients are spawned. Check the config?');
 		}
 		
 		// Start the plugin manager
@@ -136,6 +142,14 @@ class Kernal extends Singleton {
 	
 	public function stop_loop() {
 		Socket::get_instance()->stop_loop();
+	}
+	
+	public function lines_sent() {
+		return Socket::get_instance()->lines_sent;
+	}
+	
+	public function lines_read() {
+		return Socket::get_instance()->lines_read;
 	}
 	
 	public function write($sid, $payload) {

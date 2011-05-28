@@ -24,6 +24,10 @@ use Mysterious\Bot\Logger;
 use Mysterious\Bot\Socket;
 
 class Server {
+	public $clients  = array(); // The Bot's Clients
+	public $users    = array(); // The NETWORKS Clients
+	public $channels = array(); // The NETWORKS Channels
+	
 	private $_connected = false;
 	private $_lastping;
 	private $_sid;
@@ -38,6 +42,14 @@ class Server {
 	}
 	
 	public function on_raw($data) {
+		// Reset the parsed message, because Parser sucks for servers
+		//$data = array(
+		//	'raw' => $data['raw'],
+		//	'rawparts' => $data['rawparts'],
+		//	'socketid' => $data['socketid']
+		//);
+		//$data = $this->_parse($data);
+		
 		// Are we even connected? Send out welcome message!
 		if ( $this->_connected === false && $data['command'] === 'NOTICE' ) {
 			$this->send_welcome();
@@ -56,11 +68,35 @@ class Server {
 		}
 		
 		// Send it out to the Plugin System
-		Event::cast('irc'.strtolower($data['command']), $data);
+		//Event::cast_server('irc.'.strtolower($data['command']), $data);
+	}
+	
+	private function _parse($data) {
+		
 	}
 	
 	public function raw($payload) {
 		Socket::get_instance()->write($this->_sid, $payload);
+	}
+	
+	public function privmsg($channel, $message, $bot) {
+		$this->raw(':'.$bot.' ! '.$channel.' :'.$message);
+	}
+	
+	public function notice($to, $message, $bot) {
+		$this->raw(':'.$bot.' NOTICE '.$to.' :'.$message);
+	}
+	
+	public function join($channel, $bot) {
+		$this->raw(':'.$bot.' JOIN '.$channel);
+	}
+	
+	public function part($channel, $message, $bot) {
+		$this->raw(':'.$bot.' PART '.$channel.' '.$message);
+	}
+	
+	public function quit($channel, $message, $bot) {
+		$this->raw(':'.$bot.' QUIT '.$channel.' '.$message);
 	}
 	
 	//=========================================================
@@ -75,6 +111,23 @@ class Server {
 		$out[] = 'EOS';
 		
 		$this->raw($out);
+		$out = array();
+		
+		// We're dicks. Kill anyone using one of out bot's nick.
+		// First spawn a TEMP client to do the physical killing.
+		$nick = 'Services['.uniqid().']';
+		
+		// Now KILL the nick, if it's being used, and SQLine that baby!
+		$this->raw('NICK '.$nick.' 2 '.time().' services '.$this->_settings['linkname'].' '.$this->_settings['linkname'].' 0 :'.$this->_settings['linkdesc'].' Temp Service Bot');
+		foreach ( $this->_settings['clients'] AS $botuuid => $settings ) {
+			$out[] = ':'.$nick.' KILL '.$settings['nick'].' :Sorry, this nick is being used by the IRC Bot Services';
+			$out[] = 'SQLINE '.$settings['nick'].' :Nick is being used for '.$this->_settings['linkname'].' services';
+		}
+		
+		$out[] = ':'.$nick.' QUIT Good Bye!';
+		
+		$this->raw($out);
+		
 		$out = array();
 		
 		foreach ( $this->_settings['clients'] AS $botuuid => $settings ) {
@@ -107,6 +160,8 @@ class Server {
 			
 			if ( isset($this->_settings['globalchan']) && !empty($this->_settings['globalchan']) )
 				$out[] = ':'.$settings['nick'].' JOIN '.$this->_settings['globalchan'];
+			
+			$this->_clients[] = $botuuid;
 		}
 		
 		$this->raw($out);

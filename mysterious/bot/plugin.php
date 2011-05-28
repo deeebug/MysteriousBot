@@ -32,25 +32,25 @@ abstract class Plugin {
 	final public function privmsg($channel, $message, $bot=null) {
 		if ( empty($bot) ) $bot = $this->__bot;
 		
-		BotManager::get_instance()->get_bot($bot)->privmsg($channel, $message);
+		BotManager::get_instance()->get_bot($bot)->privmsg($channel, $message, $bot);
 	}
 	
 	final public function notice($to, $message, $bot=null) {
 		if ( empty($bot) ) $bot = $this->__bot;
 		
-		BotManager::get_instance()->get_bot($bot)->notice($to, $message);
+		BotManager::get_instance()->get_bot($bot)->notice($to, $message, $bot);
 	}
 	
 	final public function join($channel, $key=null, $bot=null) {
 		if ( empty($bot) ) $bot = $this->__bot;
 		
-		BotManager::get_instance()->get_bot($bot)->join($channel, $key);
+		BotManager::get_instance()->get_bot($bot)->join($channel, $key, $bot);
 	}
 	
 	final public function part($channel, $message=null, $bot=null) {
 		if ( empty($bot) ) $bot = $this->__bot;
 		
-		BotManager::get_instance()->get_bot($bot)->part($channel, $message);
+		BotManager::get_instance()->get_bot($bot)->part($channel, $message, $bot);
 	}
 	
 	final public function config($item, $default=false) {

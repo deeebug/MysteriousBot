@@ -126,6 +126,10 @@ class Client {
 			$out[] = 'OPER '.$this->_settings['oper']['username'].' '.$this->_settings['oper']['password'];
 		}
 		
+		if ( isset($this->_settings['autojoin']) && !empty($this->_settings['autojoin']) ) {
+			$out[] = 'JOIN '.implode(',', $this->_settings['autojoin']);
+		}
+		
 		$this->raw($out);
 		$this->curnick = $this->_settings['nick'];
 	}

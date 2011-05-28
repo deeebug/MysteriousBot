@@ -63,7 +63,17 @@ class PluginManager extends Singleton {
 				break;
 				
 				case 'server':
-					throw new \Exception('[Plugin Loader] type server is not supported yet');
+					foreach ( $settings['clients'] AS $clientuuid => $config ) {
+						if ( isset($config['plugins']) && !empty($config['plugins']) ) {
+							if ( array_search(strtolower($plugin), array_map('strtolower', $config['plugins'])) !== false ) {
+								// First tell the plugin that we're using XXXX bot
+								$this->_plugins[strtolower($plugin)]->__setbot('S_'.$uuid.'-'.$clientuuid);
+								
+								// Okay, run __initialize
+								$this->_plugins[strtolower($plugin)]->__initialize();
+							}
+						}
+					}
 				break;
 			}
 		}

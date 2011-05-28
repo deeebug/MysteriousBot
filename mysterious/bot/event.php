@@ -78,6 +78,10 @@ class Event {
 		}
 	}
 	
+	public static function cast_server($event, $data) {
+		// @@TODO@@ //
+	}
+	
 	public static function register($event, $callback, $plugin=null, $bot=null) {
 		if ( !empty($bot) ) $bot = BotManager::get_instance()->bot2sid($bot);
 		if ( empty($bot) )  $bot = self::RESPOND_ALL;

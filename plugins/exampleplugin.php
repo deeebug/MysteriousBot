@@ -41,6 +41,9 @@ class ExamplePlugin extends Plugin {
 		// Kill the bot off
 		$this->register_event('irc.privmsg', '!die', 'cmd_die');
 		
+		// Get lines sent
+		$this->register_event('irc.privmsg', '!stats', 'cmd_stats');
+		
 		//$this->register_help('!example', 'The help info for !example');
 	}
 	
@@ -58,6 +61,11 @@ class ExamplePlugin extends Plugin {
 	
 	public function cmd_die() {
 		Kernal::get_instance()->stop_loop();
+	}
+	
+	public function cmd_stats() {
+		$this->privmsg(Message::channel(), '[STATS] This bot has globally sent '.Kernal::get_instance()->lines_sent().' lines of data');
+		$this->privmsg(Message::channel(), '[STATS] This bot has globally read '.Kernal::get_instance()->lines_read().' lines of data');
 	}
 	
 	public function catchall() {

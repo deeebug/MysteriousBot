@@ -75,7 +75,19 @@ class BotManager extends Singleton {
 	}
 	
 	public function get_bot($uuid) {
-		return isset($this->_bots[$uuid]) ? $this->_bots[$uuid] : null;
+		// Is it a server thingy?
+		if ( !isset($this->_bots[$uuid]) && substr($uuid, 0, 2) == 'S_' ) {
+			$uuid = explode('-', substr($uuid, 2));
+			
+			if ( isset($this->_bots[$uuid[0]]) && array_search($uuid[1], $this->_bots[$uuid[0]]->clients) !== false ) {
+				return $this->_bots[$uuid[0]];
+			}
+			
+			// Dunno, return false.
+			return false;
+		} else {
+			return $this->_bots[$uuid];
+		}
 	}
 	
 	public function bot2sid($bot) {

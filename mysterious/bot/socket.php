@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 5/26/2011                          ##
+##  [*] Last edit: 5/28/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -21,6 +21,9 @@ defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 use Mysterious\Singleton;
 
 class Socket extends Singleton {
+	public $lines_sent = 0;
+	public $lines_read = 0;
+	
 	private $queue_write = array();
 	private $_loop = true;
 	private $_sockets = array();
@@ -97,7 +100,7 @@ class Socket extends Singleton {
 	public function loop() {
 		while ( $this->_loop === true ) {
 			// First let's sleep a bit, to calm down...
-			usleep(40000);
+			usleep(Config::get_instance()->get('usleep'));
 			
 			// Now start with the timers
 			Timer::tik();
@@ -136,6 +139,7 @@ class Socket extends Singleton {
 							$writed += socket_write($this->_sockets[$data['socketid']]['socket'], $data['payload']);
 							$logger->debug(__FILE__, __LINE__, '[Socket] Wrote payload to '.$data['socketid'].' :'.$data['payload']);
 						}
+						$this->lines_sent += count(explode("\n", $data['payload']));
 						array_shift($this->queue_write);
 					} else {
 						break;
@@ -167,6 +171,7 @@ class Socket extends Singleton {
 						default:
 						case 'C':
 							$data = explode("\n", socket_read($this->_sockets[$id]['socket'], 65536));
+							$this->lines_read += count($data);
 							
 							foreach ( $data AS $line ) {
 								if ( strlen($line) == 0 ) continue;
