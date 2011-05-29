@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 5/27/2011                          ##
+##  [*] Last edit: 5/29/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot\IRC;
@@ -26,7 +26,9 @@ use Mysterious\Bot\Socket;
 class Server {
 	public $clients  = array(); // The Bot's Clients
 	public $users    = array(); // The NETWORKS Clients
+	public $uuids    = array(); // The NETWORK ID <--> Nick ID
 	public $channels = array(); // The NETWORKS Channels
+	public $botchans = array(); // The Bot's Clients Channels currently joined.
 	
 	private $_connected = false;
 	private $_lastping;
@@ -42,16 +44,8 @@ class Server {
 	}
 	
 	public function on_raw($data) {
-		// Reset the parsed message, because Parser sucks for servers
-		//$data = array(
-		//	'raw' => $data['raw'],
-		//	'rawparts' => $data['rawparts'],
-		//	'socketid' => $data['socketid']
-		//);
-		//$data = $this->_parse($data);
-		
 		// Are we even connected? Send out welcome message!
-		if ( $this->_connected === false && $data['command'] === 'NOTICE' ) {
+		if ( $this->_connected === false && $data['command'] == 'NOTICE' ) {
 			$this->send_welcome();
 			$this->_connected = true;
 			$this->_lastping = time();
@@ -68,11 +62,7 @@ class Server {
 		}
 		
 		// Send it out to the Plugin System
-		//Event::cast_server('irc.'.strtolower($data['command']), $data);
-	}
-	
-	private function _parse($data) {
-		
+		Event::cast_server('irc.'.strtolower($data['command']), $data);
 	}
 	
 	public function raw($payload) {
@@ -80,23 +70,42 @@ class Server {
 	}
 	
 	public function privmsg($channel, $message, $bot) {
-		$this->raw(':'.$bot.' ! '.$channel.' :'.$message);
+		$bot = $this->_fixbotuuid($bot);
+		$this->raw(':'.$bot.' PRIVMSG '.$channel.' :'.$message);
 	}
 	
 	public function notice($to, $message, $bot) {
+		$bot = $this->_fixbotuuid($bot);
 		$this->raw(':'.$bot.' NOTICE '.$to.' :'.$message);
 	}
 	
 	public function join($channel, $bot) {
+		$bot = $this->_fixbotuuid($bot);
 		$this->raw(':'.$bot.' JOIN '.$channel);
 	}
 	
 	public function part($channel, $message, $bot) {
+		$bot = $this->_fixbotuuid($bot);
 		$this->raw(':'.$bot.' PART '.$channel.' '.$message);
 	}
 	
 	public function quit($channel, $message, $bot) {
+		$bot = $this->_fixbotuuid($bot);
 		$this->raw(':'.$bot.' QUIT '.$channel.' '.$message);
+	}
+	
+	public function _fixbotuuid($bot) {
+		if ( substr($bot, 0, 2) == 'S_' && count(explode('-', $bot)) == 2 ) {
+			$botuuid = explode('-', $bot);
+			$botuuid = $botuuid[1];
+			
+			if ( isset($this->_settings['clients'][$botuuid]) )
+				return $this->_settings['clients'][$botuuid]['nick'];
+			else
+				return $bot;
+		}
+		
+		return $bot;
 	}
 	
 	//=========================================================
@@ -155,13 +164,17 @@ class Server {
 			$out[] = $welcome;
 			$out[] = $mode;
 			
-			if ( isset($settings['autojoin']) && !empty($settings['autojoin']) )
+			if ( isset($settings['autojoin']) && !empty($settings['autojoin']) ) {
 				$out[] = ':'.$settings['nick'].' JOIN '.implode(',', $settings['autojoin']);
+				$this->botchans[$botuuid] = $settings['autojoin'];
+			}
 			
-			if ( isset($this->_settings['globalchan']) && !empty($this->_settings['globalchan']) )
+			if ( isset($this->_settings['globalchan']) && !empty($this->_settings['globalchan']) ) {
 				$out[] = ':'.$settings['nick'].' JOIN '.$this->_settings['globalchan'];
+				$this->botchans[$botuuid][] = $this->_settings['globalchan'];
+			}
 			
-			$this->_clients[] = $botuuid;
+			$this->_clients[] = $settings['nick'];
 		}
 		
 		$this->raw($out);

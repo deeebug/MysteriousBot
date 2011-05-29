@@ -14,7 +14,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 5/28/2011                          ##
+##  [*] Last edit: 5/29/2011                          ##
 ## ################################################## ##
 
 defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
@@ -123,7 +123,7 @@ return array(
 			),
 			
 			// Optional Settings
-			'globalchan' => '#opers', // All bots will be found here
+			'globalchan' => '#bots', // All bots will be found here
 		),
 		
 		'mysteriousbot003' => array(

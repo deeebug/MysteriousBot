@@ -54,13 +54,15 @@ class BotManager extends Singleton {
 		
 		// Lets parse the message
 		$data = array(
-			'raw' => $raw,
+			'raw'      => $raw,
 			'rawparts' => explode(' ', $raw),
-			'socketid' => $sid
+			'socketid' => $sid,
+			'_botid'   => $this->_sid2bot[$sid],
 		);
 		
 		try {
-			$parsed = Parser::new_instance($raw);
+			$isclient = $this->get_bot($this->_sid2bot[$sid]) instanceof Client;
+			$parsed = Parser::new_instance($data, $isclient);
 		} catch ( IRCParserException $e ) {
 			Logger::get_instance()->warning(__FILE__, __LINE__, 'The IRC Parser threw an error! '.$e->getMessage());
 			return;
@@ -79,19 +81,33 @@ class BotManager extends Singleton {
 		if ( !isset($this->_bots[$uuid]) && substr($uuid, 0, 2) == 'S_' ) {
 			$uuid = explode('-', substr($uuid, 2));
 			
-			if ( isset($this->_bots[$uuid[0]]) && array_search($uuid[1], $this->_bots[$uuid[0]]->clients) !== false ) {
+			if ( isset($this->_bots[$uuid[0]]) ) {
 				return $this->_bots[$uuid[0]];
 			}
 			
 			// Dunno, return false.
+			Logger::get_instance()->warning(__FILE__, __LINE__, '[BotManager] get_bot was called, with uuid '.$uuid.', but it was not found');
 			return false;
-		} else {
+		} else if ( isset($this->_bots[$uuid]) ) {
 			return $this->_bots[$uuid];
+		} else {
+			return false;
 		}
 	}
 	
 	public function bot2sid($bot) {
-		return isset($this->_bot2sid[$bot]) ? $this->_bot2sid[$bot] : null;
+		if ( isset($this->_bot2sid[$bot]) ) {
+			return $this->_bot2sid[$bot];
+		} else {
+			if ( substr($bot, 0, 2) == 'S_' && count(explode('-', $bot)) == 2 ) {
+				$botid = explode('-', substr($bot, 2));
+				$botid = $botid[0];
+				
+				return $this->_bot2sid[$botid];
+			} else {
+				return null;
+			}
+		}
 	}
 	
 	public function sid2bot($sid) {
