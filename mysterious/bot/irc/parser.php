@@ -18,8 +18,6 @@
 namespace Mysterious\Bot\IRC;
 defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 
-use Mysterious\Bot\Logger;
-
 class Parser {
 	const REGEXMSG = "^(?P<message>((?P<prefix>:((?P<nick>[A-Za-z][a-z0-9\-\[\]\`^{}]*)|(?P<servername>((?P<host>(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z]|[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9]))|(?P<ip>(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])))))(!(?P<user>[^ |\r|\n]+?))?(@(?P<userhost>(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z]|[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9]))?)?) )?(?<command>([a-zA-Z]+)|[0-9]{3}) (?P<params>.+)?)$";
 	
@@ -175,14 +173,6 @@ class Parser {
 			
 			switch ( $parts[1] ) {
 				case 'MODE':
-					//[DEBUG] ./mysterious/bot/socket.php(179): [Socket] Got raw data for socketid CXXXXXXXXXXXXX ::debug MODE debug :+iowghaAxN
-					//[DEBUG] ./mysterious/bot/socket.php(179): [Socket] Got raw data for socketid CXXXXXXXXXXXXX ::debug MODE #opers -q debug
-					//[DEBUG] ./mysterious/bot/socket.php(179): [Socket] Got raw data for socketid CXXXXXXXXXXXXX ::debug MODE #opers +q debug
-					//[DEBUG] ./mysterious/bot/socket.php(179): [Socket] Got raw data for socketid CXXXXXXXXXXXXX ::debug MODE #opers -q+h debug debug
-					//[DEBUG] ./mysterious/bot/socket.php(179): [Socket] Got raw data for socketid CXXXXXXXXXXXXX ::local.net MODE #test2 +o debug 1306638744
-					//[DEBUG] ./mysterious/bot/socket.php(179): [Socket] Got raw data for socketid CXXXXXXXXXXXXX ::local.net MODE #test + 1306638744
-					//[DEBUG] ./mysterious/bot/socket.php(179): [Socket] Got raw data for socketid CXXXXXXXXXXXXX ::local.net MODE #test +sto debug 1306638744
-					// ^^ The above is why i HATE HATE HATE parsing IRC. Mixing channel status modes with channel modes :X
 					$nick = substr($parts[0], 1);
 					if ( substr($parts[3], 0, 1) == ':' ) $parts[3] = substr($parts[3], 1);
 					
@@ -262,7 +252,6 @@ class Parser {
 				break;
 				
 				case 'TOPIC':
-					// :debug TOPIC #opers debug 1306637679 :Hello!
 					if ( !isset($bot->channels[$parts[2]]) ) break; //Parser did an uh-oh.
 					
 					$topic = explode(' :', substr($data['raw'], 1));
@@ -288,7 +277,6 @@ class Parser {
 				break;
 				
 				case 'SETHOST':
-					//:debug SETHOST local-287C0070
 					$nick = substr($parts[0], 1);
 					if ( !isset($bot->users[$nick]) ) break; //Parser did an uh-oh.
 					
@@ -296,7 +284,6 @@ class Parser {
 				break;
 				
 				case 'SETIDENT':
-					//:debug SETIDENT lol
 					$nick = substr($parts[0], 1);
 					if ( !isset($bot->users[$nick]) ) break; //Parser did an uh-oh.
 					
@@ -304,7 +291,6 @@ class Parser {
 				break;
 				
 				case 'SETNAME':
-					//:debug SETNAME :hello
 					$nick = substr($parts[0], 1);
 					if ( !isset($bot->users[$nick]) ) break; //Parser did an uh-oh.
 					
@@ -315,7 +301,6 @@ class Parser {
 				break;
 				
 				case 'JOIN':
-					//:debug JOIN #test2,#test,#opers
 					if ( strpos($parts[2], ',') !== false ) {
 						$channels = explode(',', $parts[2]);
 					} else {
@@ -356,7 +341,6 @@ class Parser {
 				break;
 				
 				case 'PART':
-					// :debug PART #opers
 					if ( !isset($bot->channels[$parts[2]]) ) break; //Parser did an uh-oh.
 					
 					$pos = array_search(substr($parts[0], 1), $bot->channels[$parts[2]]['users']);
@@ -374,7 +358,6 @@ class Parser {
 				break;
 				
 				case 'PRIVMSG':
-					//[DEBUG] ./mysterious/bot/socket.php(179): [Socket] Got raw data for socketid CXXXXXXXXXXXXX ::debug PRIVMSG #opers :hello
 					$msg = explode(' :', substr($data['raw'], 1));
 					$msg = $msg[1];
 					
@@ -388,7 +371,6 @@ class Parser {
 				break;
 				
 				case 'NOTICE':
-					//[DEBUG] ./mysterious/bot/socket.php(179): [Socket] Got raw data for socketid CXXXXXXXXXXXXX ::debug NOTICE Global[Mysterious] :HELLO
 					$msg = explode(' :', substr($data['raw'], 1));
 					$msg = $msg[1];
 					
@@ -400,7 +382,6 @@ class Parser {
 				break;
 				
 				case 'NICK':
-					//[DEBUG] ./mysterious/bot/socket.php(179): [Socket] Got raw data for socketid CXXXXXXXXXXXXX ::debug NICK debug_ 1306644231
 					$bot->users[$parts[2]] = $bot->users[substr($parts[0], 1)];
 					
 					$data['nick'] = substr($parts[0], 1);
@@ -418,7 +399,6 @@ class Parser {
 			switch ( $parts[0] ) {
 				// Introducing a new user
 				case 'NICK':
-					//NICK debug 1 1306593264 debug localhost local.net 0 :debug lol
 					$name = explode(' :', $data['raw']);
 					$name = $name[1];
 					
@@ -436,7 +416,6 @@ class Parser {
 				break;
 				
 				case 'TOPIC':
-					// TOPIC #opers debug 1306637679 :Hello!
 					if ( !isset($bot->channels[$parts[1]]) ) break; //Parser did an uh-oh.
 					
 					$topic = explode(' :', substr($data['raw'], 1));
