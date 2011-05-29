@@ -26,7 +26,7 @@ return array(
 	'clients' => array(
 		'mysteriousbot001' => array(
 			// Bare settings
-			'enabled'  => false,
+			'enabled'  => true,
 			'type'     => 'client',
 			
 			// Connection settings
@@ -64,7 +64,7 @@ return array(
 		
 		'mysteriousbot002' => array(
 			// Bare settings
-			'enabled'  => true,
+			'enabled'  => false,
 			'type'     => 'server',
 			
 			// Connection settings
@@ -161,15 +161,18 @@ return array(
 	),
 	
 	'socketserver' => array(
-		'enabled' => false, // Enable the Socket Server - API
-		'ip' => '127.0.0.1', // Port for the socket server to run on
-		'port' => 7363, // Port for the socket server to run on
-		'password' => 'd3atht0y0u', // Password required to validate command
+		'enabled'      => true, // Enable the Socket Server - API
+		'ip'           => '127.0.0.1', // Port for the socket server to run on
+		'port'         => 7363, // Port for the socket server to run on
+		'password'     => 'd3atht0y0u', // Password required to validate command
+		'max_clients'  => 10, // Max number of clients accepted to be connected.
+		'max_attempts' => 10, // Max number of attempts until socket is disconnected.
 	),
 	
 	'database' => array(
-		'enabled' => true, // Enable the DB
-		'type' => 'pdo', // Types. Valid options are 'mysql', 'sqlite', and 'pdo'. Must be lowercase.
+		'enabled' => false, // Enable the DB
+		'type'   => 'pdo', // Types. Valid options are 'mysql', 'sqlite', and 'pdo'. Must be lowercase.
+		'ping'   => 60*5,  // How often we should ping the DB server, so we know we're still connected.
 		
 		'pdo' => array(
 			'dsn' => 'mysql:host=localhost;dbname=mydb', // PDO DSN
@@ -201,6 +204,7 @@ return array(
 		// Here you can set your CTCP replies
 		// Format:
 		// 'name' => 'reply',
+		// !!name must be lowercase!!
 		'__default' => 'WaDDuDoIN?', //This is the default reply for ANY NON-SET CTCP REPLY. Keep blank, if you want no reply.
 		'version'   => 'MysteriousBot v'.MYSTERIOUSBOT_VERSION,
 		'source'    => 'https://github.com/deeebug/mysteriousbot',

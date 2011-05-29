@@ -65,7 +65,7 @@ class Socket extends Singleton {
 		return $id;
 	}
 	
-	public function add_listener($ip, $port, $callback, $name='') {
+	public function add_listener($ip, $port, $callback, $on_accept, $name='') {
 		$logger = Logger::get_instance();
 		
 		if ( ($socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) === false ) {
@@ -85,10 +85,11 @@ class Socket extends Singleton {
 		$id = uniqid('L');
 		
 		$this->_sockets[$id] = array(
-			'socket'   => $socket,
-			'ip'       => $ip,
-			'port'     => $port,
-			'callback' => $callback
+			'socket'    => $socket,
+			'ip'        => $ip,
+			'port'      => $port,
+			'on_accept' => $on_accept,
+			'callback'  => $callback
 		);
 		
 		if ( !empty($name) )
@@ -98,15 +99,15 @@ class Socket extends Singleton {
 	}
 	
 	public function loop() {
+		// Get the logger instance
+		$logger = Logger::get_instance();
+		
 		while ( $this->_loop === true ) {
 			// First let's sleep a bit, to calm down...
 			usleep(Config::get_instance()->get('usleep'));
 			
 			// Now start with the timers
 			Timer::tik();
-			
-			// Get the logger instance
-			$logger = Logger::get_instance();
 			
 			// What do we need to read?
 			$read = array();
@@ -115,8 +116,12 @@ class Socket extends Singleton {
 			
 			// What about writes?
 			$write = array();
-			foreach ( $this->queue_write AS $id => $data )
-				$write[$id] = $this->_sockets[$data['socketid']]['socket'];
+			foreach ( $this->queue_write AS $sid => $data ) {
+				if ( !isset($this->_sockets[$sid]) )
+					unset($this->queue_write[$sid]);
+				
+				$write[] = $this->_sockets[$sid]['socket'];
+			}
 				
 			// It empty?
 			if ( empty($read) && empty($write) )
@@ -128,61 +133,75 @@ class Socket extends Singleton {
 				
 			// Do the writes
 			if ( !empty($write) ) {
-				foreach ( $write AS $socket )
-					$socketids[] = $this->_getSID($socket);
-				
-				foreach ( $this->queue_write AS $data ) {
-					if ( in_array($data['socketid'], $socketids) ) {
-						$length = strlen($data['payload']);
-						$writed = 0;
-						while ( $writed < $length ) {
-							$writed += socket_write($this->_sockets[$data['socketid']]['socket'], $data['payload']);
-							$logger->debug(__FILE__, __LINE__, '[Socket] Wrote payload to '.$data['socketid'].' :'.$data['payload']);
-						}
-						$this->lines_sent += count(explode("\n", $data['payload']));
-						array_shift($this->queue_write);
-					} else {
-						break;
+				foreach ($write AS $socket) {
+					$sid = $this->_getSID($socket);
+
+					if ( isset($this->queue_write[$sid]) )
+						$length = strlen($this->queue_write[$sid]);
+					else
+						continue;
+
+					if ( $length == 0 ) {
+						unset($this->queue_write[$sid]);
+						continue;
 					}
+					
+					// Let's start writing!
+					$writed = socket_write($socket, $this->queue_write[$sid]);
+					$logger->debug(__FILE__, __LINE__, '[Socket] Write payload to '.$sid.' :'.$this->queue_write[$sid]);
+					$this->lines_sent += count(explode("\n", $this->queue_write[$sid]));
+					
+					if ( ($writed < $length) && ($writed > 0) )
+						$this->queue_write[$sid] = substr($this->queue_write[$sid], $writed);
+					else if ($writed == $length)
+						unset($this->queue_write[$sid]);
 				}
 			}
 			
 			if ( !empty($read) ) {
-				foreach ( $read AS $socket )
-					$socketids[] = $this->_getSID($socket);
-				
-				foreach ( $socketids AS $id ) {
-					switch ( substr($id, 0, 1) ) {
-						case 'L':
-							if ( ($client = @socket_accept($this->_sockets[$id]['socket']) ) === FALSE) continue;
-							$cid = uniqid('C');
-							$addr = '';
-							$port = 0;
-							socket_getpeername($client, $addr, $port);
-							
-							$this->_sockets[$cid] = array(
-								'socket' => $client,
-								'address' => $addr,
-								'port' => $port,
-								'callback' => $this->_sockets[$id]['callback']
-							);
-						break;
+				foreach ($read AS $socket) {
+					$sid = $this->_getSID($socket);
+
+					// Oh hey, we have a connection
+					if ( substr($sid, 0, 1) == 'L' ) {
+						if (($client = @socket_accept($this->_sockets[$sid]['socket'])) === FALSE) continue;
+						$cid = uniqid('c');
+						$address = '';
+						$port = 0;
+						socket_getpeername($client, $address, $port);
+
+						$this->_sockets[$cid] = array(
+							'socket' => $client,
+							'address' => $address,
+							'port' => $port,
+							'callback' => $this->_sockets[$sid]['callback'],
+						);
 						
-						default:
-						case 'C':
-							$data = explode("\n", socket_read($this->_sockets[$id]['socket'], 65536));
-							$this->lines_read += count($data);
+						call_user_func($this->_sockets[$sid]['on_accept'], $cid, $address, $port);
+					} else {
+						$data = explode("\n", socket_read($this->_sockets[$sid]['socket'], 65536));
+						
+						foreach ( $data AS $line ) {
+							if ( strlen($line) == 0 ) continue;
+							$logger->debug(__FILE__, __LINE__, '[Socket] Got raw data for socketid '.$sid.' :'.$line);
 							
-							foreach ( $data AS $line ) {
-								if ( strlen($line) == 0 ) continue;
-								
-								$logger->debug(__FILE__, __LINE__, '[Socket] Got raw data for socketid '.$id.' :'.$line);
-								call_user_func($this->_sockets[$id]['callback'], $id, $line);
-							}
-						break;
+							call_user_func($this->_sockets[$sid]['callback'], $sid, $line);
+							$this->lines_read++;
+						}
 					}
+
+					unset($sid);
 				}
 			}
+		}
+	}
+	
+	public function close($id) {
+		if ( isset($this->_sockets[$id]) ) {
+			socket_close($this->_sockets[$id]['socket']);
+			unset($this->_sockets[$id]);
+			
+			Logger::get_instance()->info(__FILE__, __LINE__, '[Socket] Closed socket id '.$id);
 		}
 	}
 	
@@ -196,10 +215,10 @@ class Socket extends Singleton {
 			$payload = array($payload);
 		
 		foreach ( $payload AS $pload ) {
-			$this->queue_write[] = array(
-				'socketid' => $socketid,
-				'payload'  => $pload."\r\n"
-			);
+			if ( isset($this->queue_write[$socketid]) )
+				$this->queue_write[$socketid] .= $pload."\r\n";
+			else
+				$this->queue_write[$socketid] = $pload."\r\n";
 		}
 	}
 	

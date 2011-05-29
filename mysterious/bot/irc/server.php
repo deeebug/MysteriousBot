@@ -61,6 +61,19 @@ class Server {
 			return;
 		}
 		
+		if ( $data['command'] == 'CTCP' ) {
+			$config = Config::get_instance();
+			if ( $config->get('ctcp.'.strtolower($data['args'][0])) !== false )
+				$reply = $config->get('ctcp.'.strtolower($data['args'][0]));
+			else if ( $config->get('ctcp.__default') !== false )
+				$reply = $config->get('ctcp.__default');
+			else
+				$reply = 'Unknown command!';
+			
+			$this->notice($data['nick'], $reply, $data['args'][0].': '.$data['_bot_to']);
+			return;
+		}
+		
 		// Send it out to the Plugin System
 		Event::cast_server('irc.'.strtolower($data['command']), $data);
 	}
@@ -77,6 +90,14 @@ class Server {
 	public function notice($to, $message, $bot) {
 		$bot = $this->_fixbotuuid($bot);
 		$this->raw(':'.$bot.' NOTICE '.$to.' :'.$message);
+	}
+	
+	public function ctcp($to, $message, $bot) {
+		$this->privmsg($to, chr(1).$message.chr(1), $bot);
+	}
+	
+	public function action($channel, $message, $bot) {
+		$this->privmsg($channel, chr(1).$message.chr(1), $bot);
 	}
 	
 	public function join($channel, $bot) {

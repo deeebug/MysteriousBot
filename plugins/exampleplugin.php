@@ -21,6 +21,7 @@ defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 use Mysterious\Bot\Kernal;
 use Mysterious\Bot\Message;
 use Mysterious\Bot\Plugin;
+use Mysterious\Bot\Timer;
 
 class ExamplePlugin extends Plugin {
 	
@@ -40,6 +41,9 @@ class ExamplePlugin extends Plugin {
 		
 		// Kill the bot off
 		$this->register_event('irc.privmsg', '!die', 'cmd_die');
+		
+		// Get lines sent
+		$this->register_event('irc.privmsg', '!timertest', 'cmd_timertest');
 		
 		// Get lines sent
 		$this->register_event('irc.privmsg', '!stats', 'cmd_stats');
@@ -66,6 +70,15 @@ class ExamplePlugin extends Plugin {
 	public function cmd_stats() {
 		$this->privmsg(Message::channel(), '[STATS] This bot has globally sent '.Kernal::get_instance()->lines_sent().' lines of data');
 		$this->privmsg(Message::channel(), '[STATS] This bot has globally read '.Kernal::get_instance()->lines_read().' lines of data');
+	}
+	
+	public function cmd_timertest() {
+		$this->register_timer(10, 'cmd_timertest_finish', array(Message::channel()), true);
+		$this->privmsg(Message::channel(), 'Registered new timer to tik in 10 seconds!');
+	}
+	
+	public function cmd_timertest_finish($channel) {
+		$this->privmsg($channel, 'Timer done!');
 	}
 	
 	public function catchall() {

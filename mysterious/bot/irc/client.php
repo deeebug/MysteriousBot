@@ -63,6 +63,32 @@ class Client {
 			$this->curnick = $data['params'][0];
 		}
 		
+		// Nickname is in use
+		if ( $data['command'] == '433' ) {
+			$numbers = rand(1,50);
+			Logger::get_instance()->debug(__FILE__, __LINE__, '[IRC] Nick '.$this->curnick.' is in use, changing nick to '.$this->curnick.$numbers);
+			$this->curnick .= $numbers;
+			$this->raw('NICK '.$this->curnick);
+		}
+		
+		// Finished MOTD/No MOTD, send autojoin stuff
+		if ( $data['command'] == '422' || $data['command'] == '376' ) {
+			$this->send_connected();
+		}
+		
+		if ( $data['command'] == 'CTCP' ) {
+			$config = Config::get_instance();
+			if ( $config->get('ctcp.'.strtolower($data['args'][0])) !== false )
+				$reply = $config->get('ctcp.'.strtolower($data['args'][0]));
+			else if ( $config->get('ctcp.__default') !== false )
+				$reply = $config->get('ctcp.__default');
+			else
+				$reply = 'Unknown command!';
+			
+			$this->notice($data['nick'], $reply, $data['args'][0].': '.$data['channel']);
+			return;
+		}
+		
 		// If the person who joined the channel is us, zomg we joined a channel!
 		if ( $data['command'] == 'JOIN' && $data['nick'] == $this->curnick ) {
 			Logger::get_instance()->debug(__FILE__, __LINE__, '[IRC] Sending who and mode +b on newly joined channel '.$data['channel']);
@@ -101,6 +127,14 @@ class Client {
 		$this->raw('NOTICE '.$to.' :'.$message);
 	}
 	
+	public function action($channel, $message) {
+		$this->privmsg($channel, chr(1).$message.chr(1));
+	}
+	
+	public function ctcp($to, $message) {
+		$this->privmsg($to, chr(1).$message.chr(1));
+	}
+	
 	public function join($channel, $key=null) {
 		$this->raw('JOIN '.$channel.' '.$key);
 	}
@@ -122,6 +156,11 @@ class Client {
 		$out[] = 'USER '.$this->_settings['ident'].' 2 * :'.$this->_settings['name'];
 		$out[] = 'NICK '.$this->_settings['nick'];
 		
+		$this->curnick = $this->_settings['nick'];
+		$this->raw($out);
+	}
+	
+	private function send_connected() {
 		if ( isset($this->_settings['oper']) && $this->_settings['oper']['use'] === true ) {
 			$out[] = 'OPER '.$this->_settings['oper']['username'].' '.$this->_settings['oper']['password'];
 		}
@@ -131,6 +170,5 @@ class Client {
 		}
 		
 		$this->raw($out);
-		$this->curnick = $this->_settings['nick'];
 	}
 }

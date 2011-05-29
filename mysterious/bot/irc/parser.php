@@ -31,6 +31,7 @@ class Parser {
 	public static $params;
 	public static $channel;
 	public static $message;
+	public static $is_action;
 	
 	public static function new_instance($data, $client=true) {
 		if ( $client === true )
@@ -40,7 +41,7 @@ class Parser {
 	}
 	
 	public static function flush() {
-		self::$prefix = self::$nick = self::$servername = self::$user = self::$userhost = self::$command = self::$params = self::$channel = self::$message = null;
+		self::$prefix = self::$nick = self::$servername = self::$user = self::$userhost = self::$command = self::$params = self::$channel = self::$is_action = self::$message = null;
 	}
 	
 	public static function format() {
@@ -54,6 +55,7 @@ class Parser {
 			'command'    => self::$command,
 			'params'     => self::$params,
 			'channel'    => self::$channel,
+			'is_action'  => self::$is_action,
 			'message'    => self::$message,
 			'args'       => explode(' ', self::$message)
 		));
@@ -94,7 +96,7 @@ class Parser {
 	public static function _parse_client($data) {
 		self::flush();
 
-		if ( preg_match("/".self::REGEXMSG."/", $data['raw'], $msg) ) {
+		if ( preg_match("/".self::REGEXMSG."/", trim($data['raw']), $msg) ) {
 			self::$prefix = $msg['prefix'];
 			self::$nick = $msg['nick'];
 			self::$servername = $msg['servername'];
@@ -122,8 +124,8 @@ class Parser {
 
 			// Get channel and stuff.
 			if ( empty($msg['servername']) && count(self::$params) == 2 ) {
-				self::$channel = self::$params[0];
-				self::$message = self::$params[1];
+				$channel = self::$channel = self::$params[0];
+				$message = self::$message = self::$params[1];
 			}
 
 			// Is it a join, well they are different!
@@ -150,10 +152,22 @@ class Parser {
 			if ( $msg['command'] == 'PRIVMSG' && substr(self::$channel, 0, 1) != '#' ) {
 				self::$channel = self::$nick;
 			}
+			
+			// Check if it's a CTCP/Action
+			$is_action = false;
+			if ( isset($message) && isset($channel) && ($msg['command'] == 'PRIVMSG' || $msg['command'] == 'NOTICE') && substr($message, 0, 1) == chr(1) && substr($message, -1) == chr(1) ) {
+				if ( substr($channel, 0, 1) == '#' ) //It's a ACTION
+					$is_action = true;
+				else // It's a CTCP
+					self::$command = 'CTCP';
+				
+				self::$message = substr($message, 1, -1);
+				self::$is_action = $is_action;
+			}
 
 			return self::format();
 		} else {
-			throw new IRCParserException('Message passed to IRCMessage constructor in invalid format ('.$message.').');
+			throw new IRCParserException('Message passed to IRCMessage constructor in invalid format ('.$data['raw'].').');
 		}
 	}
 	
@@ -362,10 +376,12 @@ class Parser {
 					$msg = $msg[1];
 					
 					$data['message'] = $msg;
+					$data['args'] = explode(' ', trim($msg));
 					$data['nick'] = substr($parts[0], 1);
 					$data['ident'] = isset($bot->users[substr($parts[0], 1)]['ident']) ?: null;
 					$data['host'] = isset($bot->users[substr($parts[0], 1)]['host']) ?: null;
 					$data['channel'] = substr($parts[2], 0, 1) == '#' ? $parts[2] : $data['nick'];
+					$data['is_action'] = false;
 					if ( substr($data['channel'], 0, 1) != '#' )
 						$data['_bot_to'] = $parts[2];
 				break;
@@ -378,7 +394,10 @@ class Parser {
 					$data['nick'] = substr($parts[0], 1);
 					$data['ident'] = isset($bot->users[substr($parts[0], 1)]['ident']) ?: null;
 					$data['host'] = isset($bot->users[substr($parts[0], 1)]['host']) ?: null;
+					$data['channel'] = $parts[2];
 					$data['to'] = $parts[2];
+					if ( substr($data['channel'], 0, 1) != '#' )
+						$data['_bot_to'] = $parts[2];
 				break;
 				
 				case 'NICK':
@@ -433,6 +452,15 @@ class Parser {
 			}
 		}
 		
+		// Check if it's a CTCP/Action
+		if ( ($data['command'] == 'PRIVMSG' || $data['command'] == 'NOTICE') && substr($data['message'], 0, 1) == chr(1) && substr($data['message'], -1, 1) == chr(1) ) {
+			if ( substr($data['channel'], 0, 1) == '#' ) //It's a ACTION
+				$data['is_action'] = true;
+			else // It's a CTCP
+				$data['command'] = 'CTCP';
+			
+			$data['message'] = substr($data['message'], 1, -1);
+		}
 		
 		$data['fullhost'] = ((isset($data['nick']) && isset($data['ident']) && isset($data['host'])) ? $data['nick'].'!'.$data['ident'].'@'.$data['host'] : '');
 		$data['args'] = (isset($data['message']) ? explode(' ', $data['message']) : null);

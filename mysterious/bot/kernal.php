@@ -18,6 +18,7 @@
 namespace Mysterious\Bot;
 defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 
+use Database\DB;
 use Mysterious\Singleton;
 use Mysterious\Bot\Socket;
 use Mysterious\Bot\IRC\BotManager;
@@ -54,9 +55,11 @@ class Kernal extends Singleton {
 				}
 			}
 			
+			SocketServer::get_instance()->setup();
+			
 			$ip   = $config->get('socketserver.ip');
 			$port = $config->get('socketserver.port');
-			$this->SOCKET_SID = $SM->add_listener($ip, $port, array(__NAMESPACE__.'\SocketServer', 'handle_read'), 'socketserver');
+			$this->SOCKET_SID = $SM->add_listener($ip, $port, array(SocketServer::get_instance(), 'handle_read'), array(SocketServer::get_instance(), 'new_connection'), 'socketserver');
 		}
 		
 		$setup = false;
@@ -117,6 +120,12 @@ class Kernal extends Singleton {
 		
 		// Start the plugin manager
 		PluginManager::get_instance()->do_autoload();
+		
+		// Setup the DB Connection
+		if ( $config->get('database.enabled') === true ) {
+			require BASE_DIR.'database/db.php';
+			DB::get_instance()->setup();
+		}
 		
 		// Everything is ready!
 		return $this;

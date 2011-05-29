@@ -99,4 +99,11 @@ abstract class Plugin {
 		
 		return true;
 	}
+	
+	final public function register_timer($when, $function, $args=array(), $once=false) {
+		$plugin = explode('\\', get_class($this));
+		$plugin = array_pop($plugin);
+		
+		Timer::register_plugin($when, $plugin, $function, $this->__bot, $args, $once);
+	}
 }
