@@ -1,5 +1,73 @@
-This is a Work-In-Progress! Be warned, it *might* (or will) not work!
+Welcome to MysteriousBot!
+	Version: 1.0-ALPHA1
+	Released: 5/29/2011
 
-But thanks for looking! ;)
+====
 
-- debug
+It's just another IRC Bot, that tries to do a ton of things.
+Currently, you can connect to an IRC network via two ways:
+	[*] IRC Client - Your simulating a client
+	[*] IRC Linked Server- Your linking to the server, like IRC Services
+
+====
+
+There is also plugins. Here are some basics to them:
+	[*] Namespace must be "Plugins"
+	[*] You must "use" Mysterious\Bot\Plugin
+	[*] Put your commands you wish to register in a function called "__initialize"
+
+Basic overview of how to register a command:
+	[*] $this->register_event('irc.privmsg', '!example', 'cmd_example');
+		[*] First paramater is the event. It will be irc.EVENT. Event can be a number, or it can be the action (PRIVMSG, CTCP, NOTICE)
+		[*] Second paramater is the command itself. It will be converted into a regex like this: "/^{THECOMMAND}/"
+		[*] The third paramater is the function.
+	
+	[*] $this->register_event('irc.privmsg', '/^!example/', 'cmd_example');
+		[*] First paramater is the same as the first example
+		[*] Second paramater is now the regex. You can put any regex you wish here
+		[*] Third paramater is still, the function
+	
+	[*] $this->register_event('irc.privmsg', 'catchall');
+		[*] First paramater is the same as the first and second example
+		[*] Second parameter is a function name.
+	
+	[*] $this->register_event('irc.privmsg.channel', '!hello', 'cmd_hello');
+		[*] First paramater has changed here. On ONLY PRIVATE MESSAGE COMMANDS (PRIVMSG) you can add a following ".channel" for a message only in the channel,
+		or ".private" for a Private bot-to-user message.
+		[*] Second paramater is the command. Again, can also be like example #2 paramater #2.
+		[*] Third paramater, like before, is the function name.
+
+Communicating inside Plugins:
+	[*] $this->privmsg($to, $message)
+		[*] IRC Private Message.
+	
+	[*] $this->notice($to, $message)
+		[*] IRC Notice
+	
+	[*] $this->ctcp($to, $message)
+		[*] CTCP Notice
+	
+	[*] $this->join($channel, $key*)
+		[*] Join a channel, and if a key is given, with the key.
+		[**] NOTE: If the client type is a Server (Linked to an IRCD), then there is NO KEY PARAMATER. Do not pass anything.
+	
+	[*] $this->part($channel, $message)
+		[*] Parts a channel
+
+To access parts of a message inside a plugin, first use "Mysterious\Bot\Message"
+Next: To access the information, follow the format:
+Message::DATA()
+	Where "DATA" would be:
+		- channel
+		- nick
+		- ident
+		- host
+		- fullhost
+		- message
+		- args (every word in the message)
+		- command (would be PRIVMSG/NOTICE/the numeric
+
+====
+Socket Server:
+	There is a socket server functionality built into MysteriousBot. You can access, i.e. send messages, or control the bot from it
+	An example is located in the misc/socket_test.php file.
