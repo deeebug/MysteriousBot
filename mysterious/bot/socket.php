@@ -117,8 +117,10 @@ class Socket extends Singleton {
 			// What about writes?
 			$write = array();
 			foreach ( $this->queue_write AS $sid => $data ) {
-				if ( !isset($this->_sockets[$sid]) )
+				if ( !isset($this->_sockets[$sid]) ) {
 					unset($this->queue_write[$sid]);
+					continue;
+				}
 				
 				$write[] = $this->_sockets[$sid]['socket'];
 			}
@@ -179,7 +181,14 @@ class Socket extends Singleton {
 						
 						call_user_func($this->_sockets[$sid]['on_accept'], $cid, $address, $port);
 					} else {
-						$data = explode("\n", socket_read($this->_sockets[$sid]['socket'], 65536));
+						$read_data = socket_read($this->_sockets[$sid]['socket'], 65536);
+						
+						// Socket died.
+						if ( $read_data === false ) {
+							$this->close($sid);
+						}
+						
+						$data = explode("\n", $read_data);
 						
 						foreach ( $data AS $line ) {
 							if ( strlen($line) == 0 ) continue;
