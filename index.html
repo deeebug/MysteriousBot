@@ -32,8 +32,19 @@
   <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
   <script type="text/javascript">
 	$(document).ready(function() {
-		$.getJSON('https://github.com/api/v2/json/repos/show/deeebug/MysteriousBot/tags', function(data) {
-			alert(data);
+		$.ajax({
+			type: "GET",
+			url: "https://github.com/api/v2/json/repos/show/deeebug/MysteriousBot/tags",
+			dataType: "jsonp",
+			success: function(data) {
+				$.each(data.tags, function(key, val) {
+					$('#latest_version').html(key);
+					$('#download_zip').attr('href', 'https://github.com/deeebug/MysteriousBot/zipball/'+val);
+					$('#download_tar').attr('href', 'https://github.com/deeebug/MysteriousBot/tarball/'+val);
+					
+					return false;
+				});
+			}
 		});
 	});
   </script>
@@ -45,12 +56,11 @@
   <div id="container">
 
     <div class="download">
-      <a href="http://github.com/deeebug/MysteriousBot/zipball/master">
-      <a href="https://github.com/deeebug/MysteriousBot/zipball/v1.0-ALPHA1">
+      <a href="http://github.com/deeebug/MysteriousBot/zipball/master" id="download_zip">
         <img border="0" width="90" src="http://github.com/images/modules/download/zip.png"></a>
-      <a href="http://github.com/deeebug/MysteriousBot/tarball/master">
+      <a href="http://github.com/deeebug/MysteriousBot/tarball/master" id="download_tar">
         <img border="0" width="90" src="http://github.com/images/modules/download/tar.png"></a>
-      <p>LATEST VERSION:<br /><a href="https://github.com/deeebug/MysteriousBot/downloads">v1.0-ALPHA1</a></p>
+      <p>LATEST VERSION:<br /><a href="https://github.com/deeebug/MysteriousBot/downloads" id="latest_version"><em>Loading...</em></a></p>
     </div>
 
     <h1><a href="http://github.com/deeebug/MysteriousBot">MysteriousBot</a>
