@@ -8,7 +8,7 @@
   <style type="text/css">
     body {
       margin-top: 1.0em;
-      background-color: #53e0c1;
+      background-color: #36393D;
       font-family: Helvetica, Arial, FreeSans, san-serif;
       color: #000000;
     }
@@ -16,18 +16,27 @@
       margin: 0 auto;
       width: 700px;
     }
-    h1 { font-size: 3.8em; color: #ac1f3e; margin-bottom: 3px; }
+    h1 { font-size: 3.8em; color: #D01F3C; margin-bottom: 3px; }
     h1 .small { font-size: 0.4em; }
     h1 a { text-decoration: none }
-    h2 { font-size: 1.5em; color: #ac1f3e; }
-    h3 { text-align: center; color: #ac1f3e; }
+    h2 { font-size: 1.5em; color: #D01F3C; }
+    h3 { text-align: center; color: #D01F3C; }
     a { color: #ac1f3e; }
     .description { font-size: 1.2em; margin-bottom: 30px; margin-top: 30px; font-style: italic;}
     .download { float: right; }
+    .download p { text-align: center; }
     pre { background: #000; color: #fff; padding: 15px;}
     hr { border: 0; width: 80%; border-bottom: 1px solid #aaa}
     .footer { text-align:center; padding-top:30px; font-style: italic; }
   </style>
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
+  <script type="text/javascript">
+	$(document).ready(function() {
+		$.getJSON('https://github.com/api/v2/json/repos/show/deeebug/MysteriousBot/tags', function(data) {
+			alert(data);
+		});
+	});
+  </script>
 </head>
 
 <body>
@@ -37,26 +46,28 @@
 
     <div class="download">
       <a href="http://github.com/deeebug/MysteriousBot/zipball/master">
+      <a href="https://github.com/deeebug/MysteriousBot/zipball/v1.0-ALPHA1">
         <img border="0" width="90" src="http://github.com/images/modules/download/zip.png"></a>
       <a href="http://github.com/deeebug/MysteriousBot/tarball/master">
         <img border="0" width="90" src="http://github.com/images/modules/download/tar.png"></a>
+      <p>LATEST VERSION:<br /><a href="https://github.com/deeebug/MysteriousBot/downloads">v1.0-ALPHA1</a></p>
     </div>
 
     <h1><a href="http://github.com/deeebug/MysteriousBot">MysteriousBot</a>
       <span class="small">by <a href="http://github.com/deeebug">deeebug</a></span></h1>
 
     <div class="description">
-      Just a repo of MysteriousBot
+      Repo of MysteriousBot, an IRC Bot with functionality to connect to IRC Networks via a Client, or via a Server link. Also, includes socket server functionality for external API.
     </div>
 
     <h2>Dependencies</h2>
 <p>PHP 5.3</p>
 <h2>Install</h2>
-<p>blah blah blah</p>
+<p><ol><li>Clone the repo</li><li>Edit config/default.php to your liking</li><li>Run the bot via your perferred method (Example: nohup php run.php &)</li></ol></p>
 <h2>Authors</h2>
 <p>debug (this.is.debug@gmail.com)<br/><br/>      </p>
 <h2>Contact</h2>
-<p>James (jtdroste@gmail.com)</p>
+<p>debug (jtdroste@gmail.com)</p>
 
 
     <h2>Download</h2>
@@ -75,7 +86,6 @@
     </div>
 
   </div>
-
   
 </body>
 </html>
