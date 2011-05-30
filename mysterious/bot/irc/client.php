@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 5/27/2011                          ##
+##  [*] Last edit: 5/29/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot\IRC;
@@ -161,6 +161,22 @@ class Client {
 	}
 	
 	private function send_connected() {
+		$out = array();
+		if ( isset($this->_settings['nickserv']) && $this->_settings['oper']['use'] === true ) {
+			if ( $this->_settings['nick'] != $this->curnick && $this->_settings['nickserv']['ghost'] === true) {
+				$out[] = 'PRIVMSG '.$this->_settings['nickserv']['nick'].' :GHOST '.$this->_settings['nick'].' '.$this->_settings['nickserv']['password'];
+				$this->raw($out);
+				$out = array();
+				sleep(2);
+				
+				$out[] = 'NICK '.$this->_settings['nick'];
+			} else if ( $this->_settings['nick'] != $this->curnick && $this->_settings['nickserv']['ghost'] === false ) {
+				// Do nothing
+			} else {
+				$out[] = 'PRIVMSG '.$this->_settings['nickserv']['nick'].' :IDENTIFY '.$this->_settings['nickserv']['password'];
+			}
+		}
+		
 		if ( isset($this->_settings['oper']) && $this->_settings['oper']['use'] === true ) {
 			$out[] = 'OPER '.$this->_settings['oper']['username'].' '.$this->_settings['oper']['password'];
 		}
