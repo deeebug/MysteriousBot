@@ -1,0 +1,6 @@
+ToDo:
+	1. Bot functions
+	2. Events
+	3. Plugins
+	4. Parser
+	5. SocketServer - Write + Test
