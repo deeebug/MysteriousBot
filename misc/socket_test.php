@@ -40,20 +40,29 @@ $api_pass = 'd3atht0y0u';
 
 $fp = fsockopen($api_ip, $api_port);
 $active = true;
+$sent = false;
 
 while ( $active === true && ($data = trim(fgets($fp, 1024))) !== false ) {
-	echo $data."\n";
+	echo '[IN] '.$data."\n";
 	$parts = explode(' ', $data);
 	
 	switch ( $parts[0] ) {
 		case 'CHALLENGE':
-			$time = time();
-			$salt = md5(time().rand().uniqid().time());
-			$resp = sha1($time.$api_pass.$parts[1].$salt).'-'.$salt.'-'.$time;
+			if ( $sent === false ) {
+				$time = time();
+				$salt = md5(time().rand().uniqid().time());
+				$resp = sha1($time.$api_pass.$parts[1].$salt).'-'.$salt.'-'.$time;
+				$sent = true;
+			} else {
+				echo "\nChallenge is wrong. Script error?";
+				fclose($fp);
+				break 2;
+			}
 		break;
 		
 		case 'CONNECTED':
-			$resp = 'PRIVMSG mysteriousbot001 #opers Hello, from the socket server!';
+			//$resp = 'PRIVMSG mysteriousbot001 #opers Hello, from the socket server!';
+			$resp = 'RAW mysteriousbot001 MODE #opers +I';
 		break;
 		
 		default:

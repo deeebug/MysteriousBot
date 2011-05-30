@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/29/2011                            ##
-##  [*] Last edit: 5/29/2011                          ##
+##  [*] Last edit: 5/30/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -78,7 +78,7 @@ class SocketServer extends Singleton {
 				$authinfo = $raw;
 			}
 			
-			if ( substr_count($authinfo, '-') != 3 ) $authinfo = '---';
+			if ( empty($authinfo) || count(explode('-', $authinfo)) != 3 ) $authinfo = '---';
 			list($password, $salt, $time) = explode('-', $authinfo);
 			
 			if ( empty($password) || empty($salt) || empty($time) ) {
@@ -91,7 +91,7 @@ class SocketServer extends Singleton {
 				
 				$this->_clients[$socketid]['challenge'] = md5(uniqid().time().rand(1,9999));
 				
-				Socket::get_instance()->write($socketid, 'CHALLENGE '.$this->_clients[$socketid]['challenge']);
+				Socket::get_instance()->write($socketid, 'CHALLENGE '.$this->_clients[$socketid]['challenge'].' EMPTY_INFO');
 				return;
 			}
 			
@@ -105,7 +105,7 @@ class SocketServer extends Singleton {
 				}
 				
 				$this->_clients[$socketid]['challenge'] = md5(uniqid().time().rand(1,9999));
-				Socket::get_instance()->write($socketid, 'CHALLENGE '.$this->_clients[$socketid]['challenge']);
+				Socket::get_instance()->write($socketid, 'CHALLENGE '.$this->_clients[$socketid]['challenge'].' FAILED_ATTEMPT');
 				return;
 			}
 			
@@ -168,16 +168,14 @@ class SocketServer extends Singleton {
 					$message = implode(' ', $parts);
 					
 					$bot->privmsg($channel, $message, $botsubuuid);
-					
-					return 'OKAY SENT';
 				} else {
 					$channel = array_shift($parts);
 					$message = implode(' ', $parts);
 					
 					$bot->privmsg($channel, $message);
-					
-					return 'OKAY SENT';
 				}
+				
+				return 'OKAY SENT';
 			break;
 			
 			case 'notice':
@@ -194,16 +192,14 @@ class SocketServer extends Singleton {
 					$message = implode(' ', $parts);
 					
 					$bot->privmsg($channel, $message, $botsubuuid);
-					
-					return 'OKAY SENT';
 				} else {
 					$channel = array_shift($parts);
 					$message = implode(' ', $parts);
 					
 					$bot->privmsg($channel, $message);
-					
-					return 'OKAY SENT';
 				}
+				
+				return 'OKAY SENT';
 			break;
 			
 			case 'join':
@@ -219,16 +215,14 @@ class SocketServer extends Singleton {
 					$channel = array_shift($parts);
 					
 					$bot->join($channel, $botsubuuid);
-					
-					return 'PLAY JOINED';
 				} else {
 					$channel = array_shift($parts);
 					$key = @array_shift($parts);;
 					
 					$bot->join($channel, $key);
-					
-					return 'OKAY JOINED';
 				}
+				
+				return 'OKAY JOINED';
 			break;
 			
 			case 'part':
@@ -245,16 +239,14 @@ class SocketServer extends Singleton {
 					$message = implode(' ', $parts);
 					
 					$bot->part($channel, $message, $botsubuuid);
-					
-					return 'OKAY PARTED';
 				} else {
 					$channel = array_shift($parts);
 					$message = implode(' ', $parts);
 					
 					$bot->part($channel, $message);
-					
-					return 'OKAY PARTED';
 				}
+				
+				return 'OKAY PARTED';
 			break;
 		}
 	}

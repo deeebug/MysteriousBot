@@ -19,15 +19,23 @@ namespace Mysterious\Bot\IRC;
 defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 
 use Mysterious\Bot\Config;
-#use Mysterious\Bot\Channels\Manager AS ChannelManager;
 use Mysterious\Bot\Event;
 use Mysterious\Bot\Logger;
 use Mysterious\Bot\Socket;
 
 class Client {
+	public $channels = array();
+	
 	private $_connected = false;
 	private $_curnick;
 	private $_lastping;
+	private $_symbol2mode = array(
+		'~' => 'q',
+		'&' => 'a',
+		'@' => 'o',
+		'%' => 'h',
+		'+' => 'v',
+	);
 	private $_sid;
 	private $_settings;
 	
@@ -89,26 +97,84 @@ class Client {
 			return;
 		}
 		
+		if ( $data['command'] == 'JOIN' ) print_r($data);
+		
 		// If the person who joined the channel is us, zomg we joined a channel!
 		if ( $data['command'] == 'JOIN' && $data['nick'] == $this->curnick ) {
-			Logger::get_instance()->debug(__FILE__, __LINE__, '[IRC] Sending who and mode +b on newly joined channel '.$data['channel']);
-			//ChannelManager::add_channel($data['channel']);
-			$this->raw('WHO '.$data['channel']);
+			Logger::get_instance()->debug(__FILE__, __LINE__, '[IRC] Sending mode +b/+i on newly joined channel '.$data['channel']);
 			$this->raw('MODE '.$data['channel'].' +b');
+			$this->raw('MODE '.$data['channel'].' +I');
+			
+			$this->channels[$data['channel']] = array(
+				'topic'     => '',
+				'topicset'  => time(),
+				'topicby'   => '',
+				'usercount' => 0,
+				'users'     => array(),
+				'modes'     => '',
+				'banlist'   => array(),
+				'invites'   => array(),
+			);
 		}
 		
-		// print_r 352
-		if ( $data['command'] == '352' ) {
-			print_r($data);
+		if ( $data['command'] == '332' ) {
+			$this->channels[$data['params'][1]]['topic'] = $data['params'][2];
 		}
 		
-		// print_r 353
+		if ( $data['command'] == '333' ) {
+			$this->channels[$data['params'][1]]['topicby'] = $data['params'][2];
+			$this->channels[$data['params'][1]]['topicset'] = $data['params'][3];
+		}
+		
 		if ( $data['command'] == '353' ) {
-			print_r($data);
+			$channel = $data['params'][2];
+			
+			foreach ( explode(' ', $data['params'][3]) AS $weirdnick ) {
+				if ( isset($this->_symbol2mode[substr($weirdnick, 0, 1)]) ) {
+					$this->channels[$channel]['nicks'][substr($weirdnick, 1)] = array(
+						'nick'  => substr($weirdnick, 1),
+						'modes' => $this->_symbol2mode[substr($weirdnick, 0, 1)],
+					);
+				} else {
+					$this->channels[$channel]['nicks'][$weirdnick] = array(
+						'nick'  => $weirdnick,
+						'modes' => '',
+					);
+				}
+				$this->channels[$channel]['usercount']++;
+			}
 		}
 		
 		if ( $data['command'] == '367' ) {
-			print_r($data);
+			list($nick, $identhost) = explode('!', $data['params'][2]);
+			list($ident, $host) = explode('@', $identhost);
+			
+			$this->channels[$data['params'][1]]['banlist'][] = array(
+				'nick'     => $nick,
+				'ident'    => $ident,
+				'host'     => $host,
+				'fullhost' => $data['params'][2],
+				'bannedby' => $data['params'][3],
+				'bantime'  => $data['params'][4],
+			);
+		}
+		
+		if ( $data['command'] == '346' ) {
+			list($nick, $identhost) = explode('!', $data['params'][2]);
+			list($ident, $host) = explode('@', $identhost);
+			
+			$this->channels[$data['params'][1]]['invites'][] = array(
+				'nick'     => $nick,
+				'ident'    => $ident,
+				'host'     => $host,
+				'fullhost' => $data['params'][2],
+				'setby'    => $data['params'][3],
+				'settime'  => $data['params'][4],
+			);
+		}
+		
+		if ( $data['command'] == 'PRIVMSG' && $data['args'][0] == 'print' ) {
+			print_r($this->channels);
 		}
 		
 		// Send it out to the Plugin System

@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/25/2011                            ##
-##  [*] Last edit: 5/29/2011                          ##
+##  [*] Last edit: 5/30/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot\IRC;
@@ -129,7 +129,6 @@ class Parser {
 			}
 
 			// Is it a join, well they are different!
-			/*
 			if ( $msg['command'] === 'JOIN' ) {
 				$tmp = explode('!', substr(self::$prefix, 1));
 				$nick = $tmp[0];
@@ -143,7 +142,6 @@ class Parser {
 				self::$channel = self::$params[0];
 				self::$servername = '';
 			}
-			*/
 
 			if ( $msg['command'] === 'PART' ) {
 				self::$channel = self::$params[0];
@@ -176,6 +174,8 @@ class Parser {
 	public static function _parse_server($data) {
 		if ( substr($data['raw'], 0, 4) == 'PING' ) return $data; // Don't parse a ping, no need.
 		
+		// The reason we get the bot instance, is to add channels/nick info to it directly.
+		// Maybe sometime I'll move this to take place in the server.
 		$bot = BotManager::get_instance()->get_bot($data['_botid']);
 		
 		$data['raw'] = trim($data['raw']);
