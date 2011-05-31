@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 5/28/2011                          ##
+##  [*] Last edit: 5/30/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -150,7 +150,12 @@ class Socket extends Singleton {
 					
 					// Let's start writing!
 					$writed = socket_write($socket, $this->queue_write[$sid]);
-					$logger->debug(__FILE__, __LINE__, '[Socket] Write payload to '.$sid.' :'.$this->queue_write[$sid]);
+					
+					foreach ( explode("\n", $this->queue_write[$sid]) AS $payload ) {
+						if ( empty($payload) ) continue;
+						$logger->debug(__FILE__, __LINE__, '[Socket] Write payload to '.$sid.' :'.$payload);
+					}
+					
 					$this->lines_sent += count(explode("\n", $this->queue_write[$sid]));
 					
 					if ( ($writed < $length) && ($writed > 0) )
