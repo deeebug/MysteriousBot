@@ -23,6 +23,7 @@ class User {
 	public $ident;
 	public $host;
 	public $fullhost;
+	public $name;
 	
 	public $channelcount = 0;
 	public $connected;
@@ -35,5 +36,12 @@ class User {
 	
 	public static function new_instance() {
 		return new self;
+	}
+	
+	public function __get($val) {
+		if ( $val == 'fullhost' )
+			return $this->nick.'!'.$this->ident.'@'.$this->host;
+		else
+			return $this->$val;
 	}
 }

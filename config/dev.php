@@ -26,7 +26,7 @@ return array(
 	'clients' => array(
 		'mysteriousbot001' => array(
 			// Bare settings
-			'enabled'  => true,
+			'enabled'  => false,
 			'type'     => 'client',
 			
 			// Connection settings
@@ -64,7 +64,7 @@ return array(
 		
 		'mysteriousbot002' => array(
 			// Bare settings
-			'enabled'  => false,
+			'enabled'  => true,
 			'type'     => 'server',
 			
 			// Connection settings

@@ -204,20 +204,23 @@ class Parser {
 								$nicks[] = $_nick;
 							}
 							
-							$modes =& $bot->channels[$parts[2]]['modes'];
+							$modes =& $bot->channels[$parts[2]]->modes;
 						break;
 						
 						// User mode.
 						default:
 							if ( !isset($bot->users[$parts[2]]) ) return $data; //wut?
-							$modes =& $bot->users[$parts[2]]['modes'];
+							$modes =& $bot->users[$parts[2]]->modes;
 						break;
 					}
+					
+					$chan = $parts[2];
 					
 					$i = 0;
 					$add = null;
 					$to = null;
-					while ( strlen($parts[3]) >= $i ) {
+					
+					for ( $i=0,$s=strlen($parts[3]); $s>=$i; $i++ ) {
 						$char = substr($parts[3], $i, 1);
 						
 						if ( $char == '+' ) {
@@ -229,39 +232,73 @@ class Parser {
 							$to = null;
 							isset($nicks) and $to = array_shift($nicks);
 						} else {
-							if ( empty($add) ) continue; // Can't do anything..
+							if ( empty($char) ) continue; // Can't do anything..
 							
 							// User permission on channel mode
 							if ( !empty($to) ) {
 								if ( in_array($char, self::$_statusmodes) )
-									$modes =& $bot->channels[$parts[2]]['users'][$to]['modes'];
+									$modes =& $bot->channels[$parts[2]]->nicks[$to]['modes'];
 								else
-									$modes =& $bot->channels[$parts[2]]['modes'];
+									$modes =& $bot->channels[$parts[2]]->modes;
 							}
 							
-							if ( $add === true ) {
+							if ( $char == 'b' ) {
+								if ( $add === true ) {
+									list($_nick, $_identhost) = explode('!', $to);
+									list($_ident, $_host) = explode('@', $_identhost);
+									$bot->channels[$chan]->banlist[] = array(
+										'nick'     => $_nick,
+										'ident'    => $_ident,
+										'host'     => $_host,
+										'fullhost' => $to,
+										'bannedby' => $nick,
+										'bantime'  => time(),
+									);
+								} else {
+									foreach ( $bot->channels[$chan]->banlist AS $key => $data ) {
+										if ( $data['fullhost'] == $to )
+											unset($bot->channels[$chan]->banlist[$key]);
+									}
+								}
+							} else if ( $char == 'I' ) {
+								if ( $add === true ) {
+									list($_nick, $_identhost) = explode('!', $to);
+									list($_ident, $_host) = explode('@', $_identhost);
+									$bot->channels[$chan]->invites[] = array(
+										'nick'     => $_nick,
+										'ident'    => $_ident,
+										'host'     => $_host,
+										'fullhost' => $to,
+										'bannedby' => $nick,
+										'bantime'  => time(),
+									);
+								} else {
+									foreach ( $bot->channels[$chan]->invites AS $key => $data ) {
+										if ( $data['fullhost'] == $to )
+											unset($bot->channels[$chan]->banlist[$key]);
+									}
+								}
+							} else if ( $add === true ) {
 								if ( strpos($modes, $char) === false )
 									$modes .= $char;
 							} else {
 								$modes = str_replace($char, '', $modes);
 							}
 						}
-						
-						$i++;
 					}
 					unset($add, $i, $modes, $to);
 					
 					if ( substr($parts[2], 0, 1) != '#' ) {
-						if ( strpos($bot->users[$parts[2]]['modes'], 'o') === false )
-							$bot->users[$parts[2]]['ircop'] = false;
+						if ( strpos($bot->users[$parts[2]]->modes, 'o') === false )
+							$bot->users[$parts[2]]->ircop = false;
 						else
-							$bot->users[$parts[2]]['ircop'] = true;
+							$bot->users[$parts[2]]->ircop = true;
 					}
 					
 					$data['channel'] = $parts[2];
 					$data['nick'] = substr($parts[0], 1);
-					$data['ident'] = isset($bot->users[substr($parts[0], 1)]['ident']) ?: null;
-					$data['host'] = isset($bot->users[substr($parts[0], 1)]['host']) ?: null;
+					$data['ident'] = isset($bot->users[substr($parts[0], 1)]->ident) ?: null;
+					$data['host'] = isset($bot->users[substr($parts[0], 1)]->host) ?: null;
 					$data['modes'] = $parts[3];
 				break;
 				
@@ -270,21 +307,21 @@ class Parser {
 					
 					$topic = explode(' :', substr($data['raw'], 1));
 					$topic = $topic[1];
-					$oldtopic = $bot->channels[$parts[2]]['topic'];
+					$oldtopic = $bot->channels[$parts[2]]->topic;
 					
-					$bot->channels[$parts[2]]['topic'] = $topic;
-					$bot->channels[$parts[2]]['topicset'] = $parts[4];
-					$bot->channels[$parts[2]]['topicby'] = $parts[3];
+					$bot->channels[$parts[2]]->topic = $topic;
+					$bot->channels[$parts[2]]->topicset = $parts[4];
+					$bot->channels[$parts[2]]->topicby = $parts[3];
 					
-					if ( $bot->channels[$parts[2]]['created'] > $parts[4] )
-						$bot->channels[$parts[2]]['created'] = $parts[4];
+					if ( $bot->channels[$parts[2]]->created > $parts[4] )
+						$bot->channels[$parts[2]]->created = $parts[4];
 					
 					unset($topic);
 					
 					$data['channel'] = $parts[2];
 					$data['nick'] = substr($parts[0], 1);
-					$data['ident'] = $bot->users[substr($parts[0], 1)]['ident'];
-					$data['host'] = $bot->users[substr($parts[0], 1)]['host'];
+					$data['ident'] = $bot->users[substr($parts[0], 1)]->ident;
+					$data['host'] = $bot->users[substr($parts[0], 1)]>host;
 					$data['topic'] = $topic;
 					$data['topicby'] = $parts[3];
 					$data['oldtopic'] = $oldtopic;
@@ -294,14 +331,16 @@ class Parser {
 					$nick = substr($parts[0], 1);
 					if ( !isset($bot->users[$nick]) ) break; //Parser did an uh-oh.
 					
-					$bot->users[$nick]['host'] = $parts[2];
+					$bot->users[$nick]->host = $parts[2];
+					$bot->users[$nick]->fullhost = $bot->users[$nick]->nick.'!'.$bot->users[$nick]->ident.'@'.$bot->users[$nick]->host;
 				break;
 				
 				case 'SETIDENT':
 					$nick = substr($parts[0], 1);
 					if ( !isset($bot->users[$nick]) ) break; //Parser did an uh-oh.
 					
-					$bot->users[$nick]['ident'] = $parts[2];
+					$bot->users[$nick]->ident = $parts[2];
+					$bot->users[$nick]->fullhost = $bot->users[$nick]->nick.'!'.$bot->users[$nick]->ident.'@'.$bot->users[$nick]->host;
 				break;
 				
 				case 'SETNAME':
@@ -311,7 +350,7 @@ class Parser {
 					$name = explode(' :', substr($data['raw'], 1));
 					$name = $name[1];
 					
-					$bot->users[$nick]['name'] = $name;
+					$bot->users[$nick]->name = $name;
 				break;
 				
 				case 'JOIN':
@@ -323,52 +362,43 @@ class Parser {
 					
 					foreach ( $channels AS $channel ) {
 						$nick = substr($parts[0], 1);
+						
+						$bot->users[$nick]->channels[] = $channel;
+						
 						if ( isset($bot->channels[$channel]) ) {
-							$bot->channels[$channel]['usercount']++;
-							$bot->channels[$channel]['users'][$nick] = array(
+							$bot->channels[$channel]->usercount++;
+							$bot->channels[$channel]->nicks[$nick] = array(
 								'nick'    => $nick,
 								'modes'   => ''
 							);
-							break;
+							continue;
 						}
 						
-						$bot->channels[$channel] = array(
-							'topic'     => '',
-							'topicset'  => time(),
-							'topicby'   => '',
-							'created'   => time(),
-							'usercount' => 1,
-							'users'     => array(
-								$nick => array(
-									'nick'  => $nick,
-									'modes' => '',
-								),
-							),
-							'modes'     => '',
-						);
+						$bot->channels[$channel] = Channel::new_instance();
+						$bot->channels[$channel]->usercount++;
 					}
 					
 					$data['channel'] = $parts[2];
 					$data['nick'] = substr($parts[0], 1);
-					$data['ident'] = $bot->users[substr($parts[0], 1)]['ident'];
-					$data['host'] = $bot->users[substr($parts[0], 1)]['host'];
+					$data['ident'] = $bot->users[substr($parts[0], 1)]->ident;
+					$data['host'] = $bot->users[substr($parts[0], 1)]->host;
 				break;
 				
 				case 'PART':
 					if ( !isset($bot->channels[$parts[2]]) ) break; //Parser did an uh-oh.
 					
-					$pos = array_search(substr($parts[0], 1), $bot->channels[$parts[2]]['users']);
-					unset($bot->channels[$parts[2]]['users'][$pos], $pos);
-					$bot->channels[$parts[2]]['usercount']--;
+					$pos = array_search(substr($parts[0], 1), $bot->channels[$parts[2]]->nicks);
+					unset($bot->channels[$parts[2]]->nicks[$pos], $pos);
+					$bot->channels[$parts[2]]->usercount--;
 					
 					// No one left, remove the channel
-					if ( $bot->channels[$parts[2]]['usercount'] == 0 )
+					if ( $bot->channels[$parts[2]]->usercount == 0 )
 						unset($bot->channels[$parts[2]]);
 					
 					$data['channel'] = $parts[2];
 					$data['nick'] = substr($parts[0], 1);
-					$data['ident'] = $bot->users[substr($parts[0], 1)]['ident'];
-					$data['host'] = $bot->users[substr($parts[0], 1)]['host'];
+					$data['ident'] = $bot->users[substr($parts[0], 1)]->ident;
+					$data['host'] = $bot->users[substr($parts[0], 1)]->host;
 				break;
 				
 				case 'PRIVMSG':
@@ -378,8 +408,8 @@ class Parser {
 					$data['message'] = $msg;
 					$data['args'] = explode(' ', trim($msg));
 					$data['nick'] = substr($parts[0], 1);
-					$data['ident'] = isset($bot->users[substr($parts[0], 1)]['ident']) ?: null;
-					$data['host'] = isset($bot->users[substr($parts[0], 1)]['host']) ?: null;
+					$data['ident'] = isset($bot->users[substr($parts[0], 1)]->ident) ?: null;
+					$data['host'] = isset($bot->users[substr($parts[0], 1)]->host) ?: null;
 					$data['channel'] = substr($parts[2], 0, 1) == '#' ? $parts[2] : $data['nick'];
 					$data['is_action'] = false;
 					if ( substr($data['channel'], 0, 1) != '#' )
@@ -392,8 +422,8 @@ class Parser {
 					
 					$data['message'] = $msg;
 					$data['nick'] = substr($parts[0], 1);
-					$data['ident'] = isset($bot->users[substr($parts[0], 1)]['ident']) ?: null;
-					$data['host'] = isset($bot->users[substr($parts[0], 1)]['host']) ?: null;
+					$data['ident'] = isset($bot->users[substr($parts[0], 1)]->ident) ?: null;
+					$data['host'] = isset($bot->users[substr($parts[0], 1)]->host) ?: null;
 					$data['channel'] = $parts[2];
 					$data['to'] = $parts[2];
 					if ( substr($data['channel'], 0, 1) != '#' )
@@ -404,8 +434,8 @@ class Parser {
 					$bot->users[$parts[2]] = $bot->users[substr($parts[0], 1)];
 					
 					$data['nick'] = substr($parts[0], 1);
-					$data['ident'] = $bot->users[substr($parts[0], 1)]['ident'];
-					$data['host'] = $bot->users[substr($parts[0], 1)]['host'];
+					$data['ident'] = $bot->users[substr($parts[0], 1)]->ident;
+					$data['host'] = $bot->users[substr($parts[0], 1)]->host;
 					$data['oldnick'] = key($bot->users[substr($parts[0], 1)]);
 					
 					unset($bot->users[substr($parts[0], 1)]);
@@ -421,15 +451,15 @@ class Parser {
 					$name = explode(' :', $data['raw']);
 					$name = $name[1];
 					
-					$bot->users[$parts[1]] = array(
-						'connected' => $parts[3],
-						'ident'     => $parts[4],
-						'host'      => $parts[5],
-						'server'    => $parts[6],
-						'name'      => $name,
-						'ircop'     => false,
-						'modes'     => '',
-					);
+					$bot->users[$parts[1]] = User::new_instance();
+					$bot->users[$parts[1]]->connected = $parts[3];
+					$bot->users[$parts[1]]->nick = $parts[1];
+					$bot->users[$parts[1]]->ident = $parts[4];
+					$bot->users[$parts[1]]->host = $parts[5];
+					$bot->users[$parts[1]]->servername = $parts[6];
+					$bot->users[$parts[1]]->name = $name;
+					$bot->users[$parts[1]]->ircop = false;
+					$bot->users[$parts[1]]->modes = '';
 					
 					$bot->uuids[$parts[2]] = $parts[1];
 				break;
@@ -440,12 +470,12 @@ class Parser {
 					$topic = explode(' :', substr($data['raw'], 1));
 					$topic = $topic[1];
 					
-					$bot->channels[$parts[1]]['topic'] = $topic;
-					$bot->channels[$parts[1]]['topicset'] = $parts[3];
-					$bot->channels[$parts[1]]['topicby'] = $parts[2];
+					$bot->channels[$parts[1]]->topic = $topic;
+					$bot->channels[$parts[1]]->topicset = $parts[3];
+					$bot->channels[$parts[1]]->topicby = $parts[2];
 					
-					if ( $bot->channels[$parts[1]]['created'] > $parts[3] )
-						$bot->channels[$parts[1]]['created'] = $parts[3];
+					if ( $bot->channels[$parts[1]]->created > $parts[3] )
+						$bot->channels[$parts[1]]->created = $parts[3];
 					
 					unset($topic);
 				break;

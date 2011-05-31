@@ -74,6 +74,11 @@ class Server {
 			return;
 		}
 		
+		if ( $data['command'] == 'PRIVMSG' && $data['args'][0] == 'print' ) {
+			print_r($this->users);
+			print_r($this->channels);
+		}
+		
 		// Send it out to the Plugin System
 		Event::cast_server('irc.'.strtolower($data['command']), $data);
 	}
