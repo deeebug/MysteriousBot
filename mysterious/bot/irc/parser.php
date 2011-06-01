@@ -185,11 +185,16 @@ class Parser {
 			
 			switch ( $parts[1] ) {
 				case 'MODE':
+					$tmp = $parts;
+					array_shift($tmp); array_shift($tmp); array_shift($tmp);
+					array_shift($tmp);
+					
 					$data['nick'] = substr($parts[0], 1);
 					$data['ident'] = isset($bot->users[substr($parts[0], 1)]->ident) ?: null;
 					$data['host'] = isset($bot->users[substr($parts[0], 1)]->host) ?: null;
 					$data['channel'] = $parts[2];
 					$data['modes'] = $parts[3];
+					$data['affects'] = implode(' ', $tmp);
 				break;
 				
 				case 'TOPIC':

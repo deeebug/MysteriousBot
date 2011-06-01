@@ -28,7 +28,7 @@ class Server {
 	public $channels = array(); // The NETWORKS Channels
 	public $clients  = array(); // The Bot's Clients
 	public $botchans = array(); // The Bot's Clients Channels currently joined.
-	public $enforcer = false;   // The Bot's enforcer nick. Basically handles Glines, from a official-looking source Services[XXXXXXX]
+	public $enforcer = false;   // The Bot's enforcer nick. Basically handles *, from a official-looking source Services[XXXXXXX]
 	
 	private $_connected = false;
 	private $_lastping;
@@ -105,9 +105,17 @@ class Server {
 		else
 			$channels = array($channel);
 		
-		foreach ( $channels AS $chan )
+		foreach ( $channels AS $chan ) {
+			if ( !isset($this->channels[$chan]) )
+				$this->_create_channel(array('channel' => $chan));
+			
+			$this->channels[$chan]->usercount++;
+			$this->channels[$chan]->nicks[$bot] = array(
+				'nick'  => $bot,
+				'modes' => '',
+			);
 			$this->botchans[$this->_nick2uuid[$bot]][] = $chan;
-		
+		}
 		
 		$this->raw(':'.$bot.' JOIN '.implode(',', $channels));
 	}
@@ -116,14 +124,27 @@ class Server {
 		$bot = $this->_fixbotuuid($bot);
 		$this->raw(':'.$bot.' PART '.$channel.' '.$message);
 		
-		// do the part, trolol
+		if ( ($pos = array_search($channel, $this->botchans[$this->_nick2uuid[$bot]])) !== false )
+			unset($this->botchans[$this->_nick2uuid[$bot]][$pos]);
+		
+		if ( isset($this->channels[$channel]->nicks[$bot]) ) {
+			$this->channels[$channel]->usercount--;
+			unset($this->channels[$channel]->nicks[$bot]);
+		}
 	}
 	
 	public function quit($channel, $message, $bot) {
 		$bot = $this->_fixbotuuid($bot);
 		$this->raw(':'.$bot.' QUIT '.$channel.' '.$message);
 		
-		// do the quit, trolol.
+		foreach ( $this->botchans[$this->_nick2uuid[$bot]] AS $channel ) {
+			if ( isset($this->channels[$channel]) && isset($this->channels[$channel]->nicks[$bot]) ) {
+				$this->channels[$channel]->usercount--;
+				unset($this->channels[$channel]->nicks[$bot]);
+			}
+		}
+		
+		unset($this->clients[$bot], $this->botchans[$this->_nick2uuid[$bot]]);
 	}
 	
 	public function topic($channel, $topic, $bot=null) {
@@ -134,6 +155,12 @@ class Server {
 		
 		$this->raw($topic);
 		$this->raw('TOPIC '.$channel); // Get topic info.
+	}
+	
+	public function mode($channel, $modes, $affect, $bot) {
+		$this->raw(':'.$bot.' MODE '.$channel.' '.$modes.' '.$affect);
+		$this->_parse_mode(array('modes' => $modes.' '.$affect, 'channel' => $channel));
+		// @@Note: Possibly send MODES chan, to update?
 	}
 	
 	public function _fixbotuuid($bot) {
@@ -206,61 +233,10 @@ class Server {
 		$out[] = 'PASS '.$this->_settings['linkpass'];
 		$out[] = 'SERVER '.$this->_settings['linkname'].' 1 :'.$this->_settings['linkdesc'];
 		$out[] = 'EOS';
-		
 		$this->raw($out);
-		$out = array();
 		
-		foreach ( $this->_settings['clients'] AS $botuuid => $settings ) {
-			$required_settings = array(
-				'nick', 'ident', 'name', 'mode'
-			);
-			foreach ( $required_settings AS $setting ) {
-				if ( !isset($settings[$setting]) ) {
-					Logger::get_instance()->warning(__FILE__, __LINE__, '[BOT SERVER] Could not spawn bot server client '.$uuid.' - Missing '.$setting);
-				}
-			}
-			
-			if ( isset($settings['host']) && !empty($settings['host']) )
-				$host = $settings['host'];
-			else
-				$host = $this->_settings['linkname'];
-			
-			$welcome = 'NICK '.$settings['nick'].' 2 '.time().' '.$settings['ident'].' '.$host.' '.$this->_settings['linkname'].' 0 :'.$settings['name'];
-			
-			if ( isset($settings['mode']) && !empty($settings['mode']) )
-				$mode = ':'.$settings['nick'].' MODE '.$settings['nick'].' +'.$settings['mode'];
-			else
-				$mode = ':'.$settings['nick'].' MODE '.$settings['nick'].' +B';
-			
-			$out[] = $welcome;
-			$out[] = $mode;
-			
-			if ( isset($settings['autojoin']) && !empty($settings['autojoin']) ) {
-				$out[] = ':'.$settings['nick'].' JOIN '.implode(',', $settings['autojoin']);
-				$this->botchans[$botuuid] = $settings['autojoin'];
-			}
-			
-			if ( isset($this->_settings['globalchan']) && !empty($this->_settings['globalchan']) ) {
-				$out[] = ':'.$settings['nick'].' JOIN '.$this->_settings['globalchan'];
-				$this->botchans[$botuuid][] = $this->_settings['globalchan'];
-			}
-			
-			$this->_clients[] = $settings['nick'];
-			
-			foreach ( $this->botchans[$botuuid] AS $chan ) {
-				if ( !isset($this->channels[$chan]) ) {
-					$this->channels[$chan] = Channel::new_instance();
-				}
-				
-				$this->channels[$chan]->usercount++;
-				$this->channels[$chan]->nicks[$settings['nick']] = array(
-					'nick'  => $settings['nick'],
-					'modes' => '',
-				);
-			}
-		}
-		
-		$this->raw($out);
+		foreach ( $this->_settings['clients'] AS $botuuid => $settings ) 
+			$this->introduce_client($botuuid, $settings);
 	}
 	
 	private function _internal_parse($data) {
@@ -398,15 +374,15 @@ class Server {
 	}
 	
 	private function _parse_mode($data) {
-		$modes = $data['modes'];
-		$chan = $affect = array_shift($modes);
+		$chan = $data['channel'];
+		$affects = $data['affects'];
 		
-		if ( substr($affect, 0, 1) == '#' )
-			$modify =& $this->channels[$affect]->modes;
+		if ( substr($chan, 0, 1) == '#' )
+			$modify =& $this->channels[$chan]->modes;
 		else
-			$modify =& $this->users[$affect]->usermodes;
+			$modify =& $this->users[$chan]->usermodes;
 		
-		$mode_change = array_shift($modes);
+		$mode_change = $data['modes'];
 		$add = $to = null;
 		
 		for ( $i=0; strlen($mode_change) >= $i; $i++ ) {
@@ -416,12 +392,12 @@ class Server {
 				$add = true;
 				
 				$to = null;
-				!empty($modes) and $to = array_shift($modes);
+				!empty($affects) and $to = array_shift($affects);
 			} else if ( $char == '-' ) {
 				$add = false;
 				
 				$to = null;
-				!empty($modes) and $to = array_shift($modes);
+				!empty($affects) and $to = array_shift($affects);
 			} else {
 				if ( empty($char) ) continue;
 				
