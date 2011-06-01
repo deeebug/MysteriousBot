@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 5/29/2011                          ##
+##  [*] Last edit: 5/31/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot\IRC;
@@ -24,14 +24,15 @@ use Mysterious\Bot\Logger;
 use Mysterious\Bot\Socket;
 
 class Server {
-	public $clients  = array(); // The Bot's Clients
 	public $users    = array(); // The NETWORKS Clients
-	public $uuids    = array(); // The NETWORK ID <--> Nick ID
 	public $channels = array(); // The NETWORKS Channels
+	public $clients  = array(); // The Bot's Clients
 	public $botchans = array(); // The Bot's Clients Channels currently joined.
+	public $enforcer = false;   // The Bot's enforcer nick. Basically handles Glines, from a official-looking source Services[XXXXXXX]
 	
 	private $_connected = false;
 	private $_lastping;
+	private $_nick2uuid = array();
 	private $_sid;
 	private $_settings;
 	
@@ -61,19 +62,10 @@ class Server {
 			return;
 		}
 		
-		if ( $data['command'] == 'CTCP' ) {
-			$config = Config::get_instance();
-			if ( $config->get('ctcp.'.strtolower($data['args'][0])) !== false )
-				$reply = $config->get('ctcp.'.strtolower($data['args'][0]));
-			else if ( $config->get('ctcp.__default') !== false )
-				$reply = $config->get('ctcp.__default');
-			else
-				$reply = 'Unknown command!';
-			
-			$this->notice($data['nick'], $reply, $data['args'][0].': '.$data['_bot_to']);
-			return;
-		}
+		// Do any internal magic
+		$this->_internal_parse($data);
 		
+		// Got a quick debugging command.
 		if ( $data['command'] == 'PRIVMSG' && $data['args'][0] == 'print' ) {
 			print_r($this->users);
 			print_r($this->channels);
@@ -107,17 +99,31 @@ class Server {
 	
 	public function join($channel, $bot) {
 		$bot = $this->_fixbotuuid($bot);
-		$this->raw(':'.$bot.' JOIN '.$channel);
+		
+		if ( strpos($channel, ',') !== false )
+			$channels = explode(',', $channel);
+		else
+			$channels = array($channel);
+		
+		foreach ( $channels AS $chan )
+			$this->botchans[$this->_nick2uuid[$bot]][] = $chan;
+		
+		
+		$this->raw(':'.$bot.' JOIN '.implode(',', $channels));
 	}
 	
 	public function part($channel, $message, $bot) {
 		$bot = $this->_fixbotuuid($bot);
 		$this->raw(':'.$bot.' PART '.$channel.' '.$message);
+		
+		// do the part, trolol
 	}
 	
 	public function quit($channel, $message, $bot) {
 		$bot = $this->_fixbotuuid($bot);
 		$this->raw(':'.$bot.' QUIT '.$channel.' '.$message);
+		
+		// do the quit, trolol.
 	}
 	
 	public function topic($channel, $topic, $bot=null) {
@@ -148,6 +154,52 @@ class Server {
 	//=====================END "Public" Methods
 	//=========================================================
 	
+	public function introduce_client($uuid, $settings) {
+		if ( $this->enforcer === false ) {
+			// Spawning the enforcer!
+			$this->enforcer = $nick = 'Services['.uniqid().']';
+			
+			$this->raw('NICK '.$nick.' 2 '.time().' services '.$this->_settings['linkname'].' '.$this->_settings['linkname'].' 0 :'.$this->_settings['linkdesc'].' Enforcer Bot');
+		}
+		
+		foreach ( array('nick', 'ident', 'name') AS $setting ) {
+			if ( !isset($settings[$setting]) ) {
+				Logger::get_instance()->debug(__FILE__, __LINE__, __METHOD__.' - Could not spawn a new client - Missing setting '.$setting);
+				return false;
+			}
+		}
+		
+		$this->clients[] = $settings['nick'];
+		$this->_nick2uuid[$settings['nick']] = $uuid;
+		
+		if ( !isset($settings['host']) )
+			$settings['host'] = $this->_settings['linkname'];
+		
+		if ( isset($settings['mode']) && !empty($settings['mode']) )
+			$mode = $settings['mode'];
+		else
+			$mode = 'B';
+			
+		
+		$out   = array();
+		$out[] = ':'.$this->enforcer.' KILL '.$settings['nick'].' :Sorry, this nick is being used by the IRC Bot Services';
+		$out[] = 'SQLINE '.$settings['nick'].' :Nick is being used for '.$this->_settings['linkname'].' services';
+		$out[] = 'NICK '.$settings['nick'].' 2 '.time().' '.$settings['ident'].' '.$settings['host'].' '.$this->_settings['linkname'].' 0 :'.$settings['name'];
+		$out[] = ':'.$settings['nick'].' MODE '.$settings['nick'].' +'.$mode;
+		
+		$this->raw($out);
+		
+		if ( isset($settings['autojoin']) )
+			$this->join($settings['autojoin'], $settings['nick']);
+		
+		if ( isset($this->_settings['globalchan']) && !empty($this->_settings['globalchan']) )
+			$this->join($this->_settings['globalchan'], $settings['nick']);
+	}
+	
+	//=========================================================
+	//=====================END "Semi-Public" Methods
+	//=========================================================
+	
 	private function send_welcome() {
 		$out = array();
 		
@@ -156,23 +208,6 @@ class Server {
 		$out[] = 'EOS';
 		
 		$this->raw($out);
-		$out = array();
-		
-		// We're dicks. Kill anyone using one of out bot's nick.
-		// First spawn a TEMP client to do the physical killing.
-		$nick = 'Services['.uniqid().']';
-		
-		// Now KILL the nick, if it's being used, and SQLine that baby!
-		$this->raw('NICK '.$nick.' 2 '.time().' services '.$this->_settings['linkname'].' '.$this->_settings['linkname'].' 0 :'.$this->_settings['linkdesc'].' Temp Service Bot');
-		foreach ( $this->_settings['clients'] AS $botuuid => $settings ) {
-			$out[] = ':'.$nick.' KILL '.$settings['nick'].' :Sorry, this nick is being used by the IRC Bot Services';
-			$out[] = 'SQLINE '.$settings['nick'].' :Nick is being used for '.$this->_settings['linkname'].' services';
-		}
-		
-		$out[] = ':'.$nick.' QUIT Good Bye!';
-		
-		$this->raw($out);
-		
 		$out = array();
 		
 		foreach ( $this->_settings['clients'] AS $botuuid => $settings ) {
@@ -226,5 +261,245 @@ class Server {
 		}
 		
 		$this->raw($out);
+	}
+	
+	private function _internal_parse($data) {
+		switch ( $data['command'] ) {
+			case 'MODE':
+				$this->_parse_mode($data);
+			break;
+			
+			case 'TOPIC':
+				if ( !isset($this->channels[$data['channel']]) )
+					$this->_create_channel($data);
+				
+				$channel =& $this->channels[$data['channel']];
+				
+				$channel->topic = $data['topic'];
+				$channel->topicby = $data['by'];
+				$channel->topicset = $data['set'];
+				
+				if ( $channel->created > $data['set'] )
+					$channel->created = $data['set'];
+				
+				unset($channel);
+			break;
+			
+			case 'NICKCONNECT':
+				if ( !isset($this->users[$data['nick']]) )
+					$this->_introduce_user($data);
+			break;
+			
+			case 'NICK':
+				if ( !isset($this->users[$data['nick']]) )
+					$this->_introduce_user($data);
+				
+				$this->users[$data['nick']] = $this->users[$data['oldnick']];
+				unset($this->users[$data['oldnick']]);
+			break;
+			
+			case 'SETIDENT':
+				if ( !isset($this->users[$data['nick']]) )
+					$this->_introduce_user($data);
+				
+				$this->users[$data['nick']]->ident = $data['ident'];
+			break;
+			
+			case 'SETHOST':
+				if ( !isset($this->users[$data['nick']]) )
+					$this->_introduce_user($data);
+				
+				$this->users[$data['nick']]->host = $data['host'];
+			break;
+			
+			case 'SETNAME':
+				if ( !isset($this->users[$data['nick']]) )
+					$this->_introduce_user($data);
+				
+				$this->users[$data['nick']]->name = $data['name'];
+			break;
+			
+			case 'JOIN':
+				if ( strpos($data['channel'], ',') !== false )
+					$channels = explode(',', $data['channel']);
+				else
+					$channels = array($data['channel']);
+				
+				foreach ( $channels AS $channel ) {
+					if ( !isset($this->channels[$channel]) )
+						$this->_create_channel($data);
+					
+					if ( !isset($this->users[$data['nick']]) )
+						$this->_introduce_user($data);
+					
+					$user =& $this->users[$data['nick']];
+					$channel =& $this->channels[$channel];
+					
+					$user->channels[] = $channel;
+					$user->channelcount++;
+					
+					$channel->nicks[$data['nick']] = array(
+						'nick'  => $data['nick'],
+						'modes' => '',
+					);
+					$channel->usercount++;
+					
+					unset($user, $channel);
+				}
+			break;
+			
+			case 'PART':
+				if ( !isset($this->channels[$data['channel']]) ) return; // Don't create channel.
+				if ( !isset($this->users[$data['nick']]) )
+					$this->_introduce_user($data);
+				
+				$user =& $this->users[$data['nick']];
+				$channel =& $this->channels[$data['channel']];
+				
+				$pos_chan = array_search($data['channel'], $user->channels);
+				
+				unset($user->channels[$pos_chan], $channel->nicks[$data['nick']]);
+				$user->channelcount--;
+				$channel->usercount--;
+				
+				if ( $channel->usercount == 0 )
+					unset($this->channels[$data['channel']]);
+				
+				unset($user, $channel);
+			break;
+			
+			case 'QUIT':
+				if ( !isset($this->users[$data['nick']]) ) return; // Who is he, then?
+				
+				foreach ( $this->users[$data['nick']]->channels AS $channel ) {
+					if ( ($pos = array_search($data['nick'], $this->channels[$channel]->nicks)) !== false ) {
+						$this->channels[$channel]->usercount--;
+						unset($this->channels[$channel]->nicks[$pos]);
+						
+						if ( $this->channels[$channel]->usercount == 0 )
+							unset($this->channels[$channel]);
+					}
+				}
+				
+				unset($this->users[$data['nick']]);
+			break;
+			
+			case 'CTCP':
+				$config = Config::get_instance();
+				if ( $config->get('ctcp.'.strtolower($data['args'][0])) !== false )
+					$reply = $config->get('ctcp.'.strtolower($data['args'][0]));
+				else if ( $config->get('ctcp.__default') !== false )
+					$reply = $config->get('ctcp.__default');
+				
+				if ( isset($reply) )
+					$this->notice($data['nick'], $reply, $data['args'][0].': '.$data['_bot_to']);
+			break;
+		}
+	}
+	
+	private function _parse_mode($data) {
+		$modes = $data['modes'];
+		$chan = $affect = array_shift($modes);
+		
+		if ( substr($affect, 0, 1) == '#' )
+			$modify =& $this->channels[$affect]->modes;
+		else
+			$modify =& $this->users[$affect]->usermodes;
+		
+		$mode_change = array_shift($modes);
+		$add = $to = null;
+		
+		for ( $i=0; strlen($mode_change) >= $i; $i++ ) {
+			$char = substr($mode_change, $i, 1);
+			
+			if ( $char == '+' ) {
+				$add = true;
+				
+				$to = null;
+				!empty($modes) and $to = array_shift($modes);
+			} else if ( $char == '-' ) {
+				$add = false;
+				
+				$to = null;
+				!empty($modes) and $to = array_shift($modes);
+			} else {
+				if ( empty($char) ) continue;
+				
+				// User permission on channel mode
+				if ( !empty($to) ) {
+					if ( in_array($char, array_values($this->_symbol2mode)) )
+						$modify =& $this->channels[$chan]->nicks[$to]['modes'];
+					else
+						$modify =& $this->channels[$chan]->modes;
+				}
+				
+				if ( $char == 'b' ) {
+					if ( $add === true ) {
+						list($nick, $identhost) = explode('!', $to);
+						list($ident, $host) = explode('@', $identhost);
+						$this->channels[$chan]->banlist[] = array(
+							'nick'     => $nick,
+							'ident'    => $ident,
+							'host'     => $host,
+							'fullhost' => $to,
+							'bannedby' => $data['nick'],
+							'bantime'  => time(),
+						);
+					} else {
+						foreach ( $this->channels[$chan]->banlist AS $key => $data ) {
+							if ( $data['fullhost'] == $to )
+								unset($this->channels[$chan]->banlist[$key]);
+						}
+					}
+				} else if ( $char == 'I' ) {
+					if ( $add === true ) {
+						list($nick, $identhost) = explode('!', $to);
+						list($ident, $host) = explode('@', $identhost);
+						$this->channels[$chan]->invites[] = array(
+							'nick'     => $nick,
+							'ident'    => $ident,
+							'host'     => $host,
+							'fullhost' => $to,
+							'setby'    => $data['nick'],
+							'settime'  => time(),
+						);
+					} else {
+						foreach ( $this->channels[$chan]->invites AS $key => $data ) {
+							if ( $data['fullhost'] == $to )
+								unset($this->channels[$chan]->invites[$key]);
+						}
+					}
+				} else if ( $add === true ) {
+					if ( strpos($modify, $char) === false )
+						$modify .= $char;
+				} else {
+					$modify = str_replace($char, '', $modify);
+				}	
+			}
+		}
+	}
+	
+	private function _create_channel($data) {
+		if ( !isset($data['channel']) ) return;
+		
+		$this->channels[$data['channel']] = Channel::new_instance();
+		
+		foreach ( array('modes', 'created', 'topic', 'by', 'set') AS $info ) {
+			if ( !isset($data[$info]) ) continue;
+			
+			$this->channels[$data['channel']]->$info = $data[$info];
+		}
+	}
+	
+	private function _introduce_user($data) {
+		if ( !isset($data['nick']) ) return;
+		
+		$this->users[$data['nick']] = User::new_instance();
+		
+		foreach ( array('ident', 'host', 'name', 'connected', 'ircop', 'away', 'servername') AS $info ) {
+			if ( !isset($data[$info]) ) continue;
+			
+			$this->users[$data['nick']]->$info = $data[$info];
+		}
 	}
 }

@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/30/2011                            ##
-##  [*] Last edit: 5/30/2011                          ##
+##  [*] Last edit: 5/31/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot\IRC;
@@ -22,7 +22,6 @@ class User {
 	public $nick;
 	public $ident;
 	public $host;
-	public $fullhost;
 	public $name;
 	
 	public $channelcount = 0;

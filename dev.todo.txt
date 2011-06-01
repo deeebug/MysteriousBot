@@ -3,7 +3,6 @@ ToDo:
 		-or-
 	update parser to use new Classes
 	
-	2. Modify server.php; add function introduce_client, and stuff like that
-	3. Better SocketAPI
-	4. XMPP[?]
-	5. Re-do parsing
+	2. Better SocketAPI
+	3. XMPP[?]
+	4. Re-do parsing
