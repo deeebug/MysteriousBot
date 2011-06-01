@@ -120,6 +120,16 @@ class Server {
 		$this->raw(':'.$bot.' QUIT '.$channel.' '.$message);
 	}
 	
+	public function topic($channel, $topic, $bot=null) {
+		if ( empty($bot) )
+			$topic = sprintf('TOPIC %s :%s', $channel, $topic);
+		else
+			$topic = sprintf(':%s TOPIC %s :%s', $bot, $channel, $topic);
+		
+		$this->raw($topic);
+		$this->raw('TOPIC '.$channel); // Get topic info.
+	}
+	
 	public function _fixbotuuid($bot) {
 		if ( substr($bot, 0, 2) == 'S_' && count(explode('-', $bot)) == 2 ) {
 			$botuuid = explode('-', $bot);
@@ -201,6 +211,18 @@ class Server {
 			}
 			
 			$this->_clients[] = $settings['nick'];
+			
+			foreach ( $this->botchans[$botuuid] AS $chan ) {
+				if ( !isset($this->channels[$chan]) ) {
+					$this->channels[$chan] = Channel::new_instance();
+				}
+				
+				$this->channels[$chan]->usercount++;
+				$this->channels[$chan]->nicks[$settings['nick']] = array(
+					'nick'  => $settings['nick'],
+					'modes' => '',
+				);
+			}
 		}
 		
 		$this->raw($out);

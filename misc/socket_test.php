@@ -62,7 +62,7 @@ while ( $active === true && ($data = trim(fgets($fp, 1024))) !== false ) {
 		
 		case 'CONNECTED':
 			//$resp = 'PRIVMSG mysteriousbot001 #opers Hello, from the socket server!';
-			$resp = 'RAW mysteriousbot001 MODE #opers +I';
+			$resp = 'RAW mysteriousbot002 :Global[Mysterious] TOPIC #bots :OH HELLO DERE FROM GLOBAL';
 		break;
 		
 		default:
