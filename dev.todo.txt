@@ -1,8 +1,7 @@
 ToDo:
-	1. Move parsing functions for server to the actual server class
-		-or-
-	update parser to use new Classes
-	
-	2. Better SocketAPI
-	3. XMPP[?]
-	4. Re-do parsing
+	1. Update client client to follow same "flow" as server client
+	2. More common irc functions to both client + server (action, etc)
+	3. Update plugin base to better handle the server client
+	4. Better SocketAPI
+	5. XMPP[?]
+	6. Re-do parsing

@@ -94,7 +94,7 @@ class Server {
 	}
 	
 	public function action($channel, $message, $bot) {
-		$this->privmsg($channel, chr(1).$message.chr(1), $bot);
+		$this->privmsg($channel, chr(1).'ACTION '.$message.chr(1), $bot);
 	}
 	
 	public function join($channel, $bot) {
