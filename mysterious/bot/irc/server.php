@@ -33,8 +33,15 @@ class Server {
 	private $_connected = false;
 	private $_lastping;
 	private $_nick2uuid = array();
-	private $_sid;
 	private $_settings;
+	private $_sid;
+	private $_symbol2mode = array(
+		'~' => 'q',
+		'&' => 'a',
+		'@' => 'o',
+		'%' => 'h',
+		'+' => 'v',
+	);
 	
 	public function __construct($settings) {
 		$this->_settings = $settings;
@@ -100,7 +107,9 @@ class Server {
 	public function join($channel, $bot) {
 		$bot = $this->_fixbotuuid($bot);
 		
-		if ( strpos($channel, ',') !== false )
+		if ( is_array($channel) )
+			$channels = $channel;
+		else if ( strpos($channel, ',') !== false )
 			$channels = explode(',', $channel);
 		else
 			$channels = array($channel);
@@ -115,6 +124,7 @@ class Server {
 				'modes' => '',
 			);
 			$this->botchans[$this->_nick2uuid[$bot]][] = $chan;
+			$this->users[$bot]->channels[] = $chan;
 		}
 		
 		$this->raw(':'.$bot.' JOIN '.implode(',', $channels));
@@ -127,15 +137,18 @@ class Server {
 		if ( ($pos = array_search($channel, $this->botchans[$this->_nick2uuid[$bot]])) !== false )
 			unset($this->botchans[$this->_nick2uuid[$bot]][$pos]);
 		
+		if ( ($pos = array_search($channel, $this->users[$bot]->channels)) !== false )
+			unset($this->users[$bot]->channels[$pos]);
+		
 		if ( isset($this->channels[$channel]->nicks[$bot]) ) {
 			$this->channels[$channel]->usercount--;
 			unset($this->channels[$channel]->nicks[$bot]);
 		}
 	}
 	
-	public function quit($channel, $message, $bot) {
+	public function quit($message=null, $bot) {
 		$bot = $this->_fixbotuuid($bot);
-		$this->raw(':'.$bot.' QUIT '.$channel.' '.$message);
+		$this->raw(':'.$bot.' QUIT :'.$message);
 		
 		foreach ( $this->botchans[$this->_nick2uuid[$bot]] AS $channel ) {
 			if ( isset($this->channels[$channel]) && isset($this->channels[$channel]->nicks[$bot]) ) {
@@ -144,7 +157,7 @@ class Server {
 			}
 		}
 		
-		unset($this->clients[$bot], $this->botchans[$this->_nick2uuid[$bot]]);
+		unset($this->clients[$bot], $this->botchans[$this->_nick2uuid[$bot]], $this->users[$bot]);
 	}
 	
 	public function topic($channel, $topic, $bot=null) {
@@ -157,10 +170,14 @@ class Server {
 		$this->raw('TOPIC '.$channel); // Get topic info.
 	}
 	
-	public function mode($channel, $modes, $affect, $bot) {
+	public function mode($channel, $modes, $affect=null, $bot) {
+		$bot = $this->_fixbotuuid($bot);
+		
+		if ( count(explode(' ', $affect)) == 1 && $channel == $affect )
+			$affect = null;
+		
 		$this->raw(':'.$bot.' MODE '.$channel.' '.$modes.' '.$affect);
-		$this->_parse_mode(array('modes' => $modes.' '.$affect, 'channel' => $channel));
-		// @@Note: Possibly send MODES chan, to update?
+		$this->_parse_mode(array('modes' => $modes, 'affects' => explode(' ',$affect), 'channel' => $channel));
 	}
 	
 	public function _fixbotuuid($bot) {
@@ -182,6 +199,9 @@ class Server {
 	//=========================================================
 	
 	public function introduce_client($uuid, $settings) {
+		$settings['connected'] = time();
+		$settings['servername'] = $this->_settings['linkname'];
+		
 		if ( $this->enforcer === false ) {
 			// Spawning the enforcer!
 			$this->enforcer = $nick = 'Services['.uniqid().']';
@@ -198,6 +218,7 @@ class Server {
 		
 		$this->clients[] = $settings['nick'];
 		$this->_nick2uuid[$settings['nick']] = $uuid;
+		$this->_introduce_user($settings);
 		
 		if ( !isset($settings['host']) )
 			$settings['host'] = $this->_settings['linkname'];
@@ -212,9 +233,9 @@ class Server {
 		$out[] = ':'.$this->enforcer.' KILL '.$settings['nick'].' :Sorry, this nick is being used by the IRC Bot Services';
 		$out[] = 'SQLINE '.$settings['nick'].' :Nick is being used for '.$this->_settings['linkname'].' services';
 		$out[] = 'NICK '.$settings['nick'].' 2 '.time().' '.$settings['ident'].' '.$settings['host'].' '.$this->_settings['linkname'].' 0 :'.$settings['name'];
-		$out[] = ':'.$settings['nick'].' MODE '.$settings['nick'].' +'.$mode;
-		
 		$this->raw($out);
+		
+		$this->mode($settings['nick'], '+'.$mode, null, $settings['nick']);
 		
 		if ( isset($settings['autojoin']) )
 			$this->join($settings['autojoin'], $settings['nick']);
@@ -301,17 +322,17 @@ class Server {
 				else
 					$channels = array($data['channel']);
 				
-				foreach ( $channels AS $channel ) {
-					if ( !isset($this->channels[$channel]) )
+				foreach ( $channels AS $_channel ) {
+					if ( !isset($this->channels[$_channel]) )
 						$this->_create_channel($data);
 					
 					if ( !isset($this->users[$data['nick']]) )
 						$this->_introduce_user($data);
 					
 					$user =& $this->users[$data['nick']];
-					$channel =& $this->channels[$channel];
+					$channel =& $this->channels[$_channel];
 					
-					$user->channels[] = $channel;
+					$user->channels[] = $_channel;
 					$user->channelcount++;
 					
 					$channel->nicks[$data['nick']] = array(
@@ -472,7 +493,7 @@ class Server {
 		
 		$this->users[$data['nick']] = User::new_instance();
 		
-		foreach ( array('ident', 'host', 'name', 'connected', 'ircop', 'away', 'servername') AS $info ) {
+		foreach ( array('nick', 'ident', 'host', 'name', 'connected', 'ircop', 'away', 'servername') AS $info ) {
 			if ( !isset($data[$info]) ) continue;
 			
 			$this->users[$data['nick']]->$info = $data[$info];

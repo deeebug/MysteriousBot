@@ -16,6 +16,7 @@
 ##  [*] Created: 5/29/2011                            ##
 ##  [*] Last edit: 5/29/2011                          ##
 ## ################################################## ##
+define('Y_SO_MYSTERIOUS', true);
 
 ## ################################################## ##
 ##                 Please edit below                  ##
@@ -42,7 +43,7 @@ $fp = fsockopen($api_ip, $api_port);
 $active = true;
 $sent = false;
 
-while ( $active === true && ($data = trim(fgets($fp, 1024))) !== false ) {
+while ( $active === true && ($data = trim(fgets($fp))) !== false ) {
 	echo '[IN] '.$data."\n";
 	$parts = explode(' ', $data);
 	
@@ -62,7 +63,27 @@ while ( $active === true && ($data = trim(fgets($fp, 1024))) !== false ) {
 		
 		case 'CONNECTED':
 			//$resp = 'PRIVMSG mysteriousbot001 #opers Hello, from the socket server!';
-			$resp = 'RAW mysteriousbot002 :Global[Mysterious] PART #test01-ulined';
+			//$resp = 'RAW mysteriousbot001 PART #opers';
+			$resp = 'GET_CHANNELS_OBJECT mysteriousbot001';
+			
+		break;
+		
+		case 'RESPONSE':
+			$tmp = $parts;
+			array_shift($tmp);
+			$response = array_shift($tmp);
+			$checksum = array_shift($tmp);
+			$data = implode(' ', $tmp);
+			
+			echo "Response! - ". $response."\n\n========================================\n";
+			
+			if ( sha1($data) != $checksum )
+				echo "Fatal error - Checksum failed!";
+			else
+				print_r(unserialize($data));
+			
+			$resp = 'LOGOUT';
+			$active = false;
 		break;
 		
 		default:

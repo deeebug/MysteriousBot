@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/26/2011                            ##
-##  [*] Last edit: 5/28/2011                          ##
+##  [*] Last edit: 6/1/2011                           ##
 ## ################################################## ##
 
 namespace Plugins;
@@ -64,7 +64,8 @@ class ExamplePlugin extends Plugin {
 	}
 	
 	public function cmd_die() {
-		Kernal::get_instance()->stop_loop();
+		$this->privmsg(Message::channel(), 'Shutting down in 5 seconds! BEEP BOOP BOO');
+		Timer::register(5, function() { \Mysterious\Bot\Kernal::get_instance()->stop_loop(); }, array(), true);
 	}
 	
 	public function cmd_stats() {

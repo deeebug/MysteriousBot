@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/29/2011                            ##
-##  [*] Last edit: 5/30/2011                          ##
+##  [*] Last edit: 6/1/2011                           ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -247,6 +247,72 @@ class SocketServer extends Singleton {
 				}
 				
 				return 'OKAY PARTED';
+			break;
+			
+			case 'quit':
+				array_shift($parts);
+				$botuuid = array_shift($parts);
+				
+				$bot = BotManager::get_instance()->get_bot($botuuid);
+				if ( $bot === false )
+					return 'ERROR Unknown Bot UUID.';
+				
+				if ( $bot instanceof Server ) {
+					$botsubuuid = array_shift($parts);
+					$message = implode(' ', $parts);
+					
+					$bot->quit($message, $botsubuuid);
+				} else {
+					$message = implode(' ', $parts);
+					
+					$bot->quit($message);
+				}
+				
+				return 'OKAY QUIT';
+			break;
+			
+			case 'get_nicks_object':
+				array_shift($parts);
+				$botuuid = array_shift($parts);
+				
+				$bot = BotManager::get_instance()->get_bot($botuuid);
+				if ( $bot === false )
+					return 'ERROR Unknown Bot UUID.';
+				
+				return 'RESPONSE GET_NICKS_OBJECT '.sha1(serialize($bot->nicks)).' '.serialize($bot->nicks);
+			break;
+			
+			case 'get_nicks':
+				array_shift($parts);
+				$botuuid = array_shift($parts);
+				
+				$bot = BotManager::get_instance()->get_bot($botuuid);
+				if ( $bot === false )
+					return 'ERROR Unknown Bot UUID.';
+				
+				return 'RESPONSE GET_NICKS '.sha1(serialize(array_keys($bot->nicks))).' '.serialize(array_keys($bot->nicks));
+			break;
+			
+			case 'get_channels':
+				array_shift($parts);
+				$botuuid = array_shift($parts);
+				
+				$bot = BotManager::get_instance()->get_bot($botuuid);
+				if ( $bot === false )
+					return 'ERROR Unknown Bot UUID.';
+				
+				return 'RESPONSE GET_CHANNELS '.sha1(serialize(array_keys($bot->channels))).' '.serialize(array_keys($bot->channels));
+			break;
+			
+			case 'get_channels_object':
+				array_shift($parts);
+				$botuuid = array_shift($parts);
+				
+				$bot = BotManager::get_instance()->get_bot($botuuid);
+				if ( $bot === false )
+					return 'ERROR Unknown Bot UUID.';
+				
+				return 'RESPONSE GET_CHANNELS_OBJECT '.sha1(serialize($bot->channels)).' '.serialize($bot->channels);
 			break;
 		}
 	}

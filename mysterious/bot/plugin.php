@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/26/2011                            ##
-##  [*] Last edit: 5/28/2011                          ##
+##  [*] Last edit: 6/1/2011                           ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -53,8 +53,32 @@ abstract class Plugin {
 		BotManager::get_instance()->get_bot($bot)->part($channel, $message, $bot);
 	}
 	
+	final public function mode($channel, $modes, $affects=null, $bot=null) {
+		if ( empty($bot) ) $bot = $this->__bot;
+		
+		BotManager::get_instance()->get_bot($bot)->mode($channel, $modes, $affects, $bot);
+	}
+	
+	final public function topic($channel, $newtopic, $bot=null) {
+		if ( empty($bot) ) $bot = $this->__bot;
+		
+		BotManager::get_instance()->get_bot($bot)->topic($channel, $newtopic, $bot);
+	}
+	
+	final public function quit($message=null, $bot=null) {
+		if ( empty($bot) ) $bot = $this->__bot;
+		
+		BotManager::get_instance()->get_bot($bot)->quit($message, $bot);
+	}
+	
 	final public function config($item, $default=false) {
-		return Config::get_instance()->get('clients.'.$this->__bot.$item, $default);
+		if ( substr($this->__bot, 0, 2) == 'S_' ) {
+			list($uuid, $subuuid) = explode('-', substr($this->__bot, 2));
+			
+			return Config::get_instance()->get('clients.'.$uuid.'.clients.'.$subuuid.'.'.$item, $default);
+		} else {
+			return Config::get_instance()->get('clients.'.$this->__bot.'.'.$item, $default);
+		}
 	}
 	
 	final public function register_event() {
@@ -63,8 +87,6 @@ abstract class Plugin {
 		
 		switch ( count($args) ) {
 			// I dunno what this is, but IMA RETURN FALSE IT
-			case 0:
-			case 1:
 			default:
 				Logger::get_instance()->warning(__FILE__, __LINE__, '[IRC Bot ('.$this->__bot.') - Plugin '.get_class($this).'] '.count($args).' was passed, but register_event only supports 2/3 args passed');
 				return false;

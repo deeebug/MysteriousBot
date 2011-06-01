@@ -14,19 +14,19 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 5/29/2011                          ##
+##  [*] Last edit: 6/1/2011                           ##
 ## ################################################## ##
 
 defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 
 return array(
-	'debug'  => true, // Enable debug-mode?
+	'debug'  => true, // Enable debug-mode? [Basically allows debug-type messages to appear in logger
 	'usleep' => 1000, // How long before each socket read should the script wait? In microseconds
 	
 	'clients' => array(
 		'mysteriousbot001' => array(
 			// Bare settings
-			'enabled'  => false,
+			'enabled'  => true,
 			'type'     => 'client',
 			
 			// Connection settings
@@ -64,7 +64,7 @@ return array(
 		
 		'mysteriousbot002' => array(
 			// Bare settings
-			'enabled'  => true,
+			'enabled'  => false,
 			'type'     => 'server',
 			
 			// Connection settings
