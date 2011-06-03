@@ -1,6 +1,8 @@
 # Developer Stuff
 ##################
-dev*
+config/dev.php
+mysterious/bot/xmpp.php
+mysterious/bot/xmpp/*.php
 
 # Logs and databases #
 ######################

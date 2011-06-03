@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 5/30/2011                          ##
+##  [*] Last edit: 6/2/2011                           ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -222,6 +222,12 @@ class Socket extends Singleton {
 	private function _getSID($socket) {
 		foreach ($this->_sockets AS $id => $data)
 			if ($data['socket'] == $socket) return $id;
+	}
+	
+	public function enable_crypto($socketid, $enable, $type) {
+		if ( !isset($this->_sockets[$socketid]) ) return false;
+		
+		stream_socket_enable_crypto($this->_sockets[$socketid]['socket'], $enable, $type);
 	}
 	
 	public function write($socketid, $payload) {

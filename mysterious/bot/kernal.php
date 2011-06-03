@@ -29,6 +29,7 @@ class Kernal extends Singleton {
 	// Objects
 	private $bot;
 	private $sserver; // Socket Server
+	private $xmpp;
 	
 	public function initialize() {
 		// Are we even on the CLI?
@@ -62,6 +63,7 @@ class Kernal extends Singleton {
 			$this->SOCKET_SID = $SM->add_listener($ip, $port, array(SocketServer::get_instance(), 'handle_read'), array(SocketServer::get_instance(), 'new_connection'), 'socketserver');
 		}
 		
+		// Now let's go on to setup the IRC Bot
 		$setup = false;
 		foreach ( $config->get('clients') AS $uuid => $settings ) {
 			if ( $settings['enabled'] === false ) continue;
@@ -114,6 +116,38 @@ class Kernal extends Singleton {
 			$setup = true;
 		}
 		
+		// Set up the XMPP Bot
+		if ( $config->get('xmpp.enabled') === true ) {
+			foreach ( array('domain', 'port', 'username', 'password') AS $setting ) {
+				if ( $config->get('xmpp.'.$setting) === false || is_empty($config->get('xmpp.'.$setting)) ) {
+					throw new KernalError('Configuration Error - XMPP requires setting '.$setting.' to be set, and not empty');
+				}
+			}
+			
+			$this->xmpp = XMPP::get_instance();
+			$continue = true;
+			
+			try {
+				$this->xmpp->setup();
+			} catch ( XMPPError $e ) {
+				Logger::get_instance()->warning(__FILE__, __LINE__, '[XMPP] '.$e->getMessage());
+				$continue = false;
+			}
+			
+			if ( $continue === true ) {
+				$host = $config->get('xmpp.host');
+				
+				//if ( strtolower(substr($host, 0, 6)) != 'tls://')
+					//$host = 'tls://'.$host;
+				
+				$socketid = $SM->add_client($host, $config->get('xmpp.port'), false, array($this->xmpp, 'handle_read'), 'xmppbot');
+				$this->xmpp->set_sid($socketid);
+				
+				$setup = true;
+			}
+		}
+		
+		// Did we spawn any clients?
 		if ( $setup === false ) {
 			throw new KernalError('No clients are spawned. Check the config?');
 		}
