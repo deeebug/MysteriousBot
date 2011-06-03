@@ -24,7 +24,7 @@ use Mysterious\Bot\Socket;
 use Mysterious\Bot\Message;
 
 class BotManager extends Singleton {
-	private $_bots = array();
+	public     $_bots = array();
 	private $_sid2bot = array();
 	private $_bot2sid = array();
 	

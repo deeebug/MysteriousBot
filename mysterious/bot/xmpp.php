@@ -14,7 +14,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 6/1/2011                             ##
-##  [*] Last edit: 6/1/2011                           ##
+##  [*] Last edit: 6/3/2011                           ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -22,7 +22,6 @@ defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 
 use Mysterious\Singleton;
 use Mysterious\Bot\XMPP\Stream;
-use Mysterious\Bot\XMPP\Response;
 
 class XMPP extends Singleton {
 	public $admins = array();
@@ -46,6 +45,8 @@ class XMPP extends Singleton {
 			$class = 'XMPP_Plugins\\'.$plugin;
 			$this->_plugins[strtolower($plugin)] = new $class;
 			
+			Logger::get_instance()->debug(__FILE__, __LINE__, '[XMPP] Loaded plugin - '.$plugin);
+			
 			is_callable(array($this->_plugins[strtolower($plugin)], '__initialize')) and call_user_func(array($this->_plugins[strtolower($plugin)], '__initialize'));
 		}
 	}
@@ -58,6 +59,8 @@ class XMPP extends Singleton {
 	}
 	
 	public function register_command($regex, $function, $plugin) {
+		Logger::get_instance()->debug(__FILE__, __LINE__, '[XMPP] Registered new command - '.$regex.' for plugin '.$plugin);
+		
 		$this->_commands[] = array(
 			'regex'    => $regex,
 			'function' => $function,
@@ -78,16 +81,20 @@ class XMPP extends Singleton {
 		
 		// Send that stuff to the Stream!
 		$data = $this->_stream->handle($raw);
-		
+	}
+	
+	public function run_command($message) {
 		// Is it a message? Send to the plugin subsystem.
-		if ( true == false && $data['type'] == Stream::TYPE_MESSAGE ) {
-			foreach ( $this->_commands AS $data ) {
-				if ( preg_match($data['regex'], $data['message']) && is_callable($data['callback']) ) {
-					Logger::get_instance()->debug(__FILE__, __LINE__, '[XMPP - Plugin] Calling plugin '.$data['plugin']);
-					call_user_func($data['callback'], $data);
-				}
+		foreach ( $this->_commands AS $data ) {
+			if ( preg_match($data['regex'], $message['message']) && is_callable($data['callback']) ) {s
+				call_user_func(array($this->_plugins[strtolower($data['plugin'])], '__setdata'), $message);
+				call_user_func($data['callback']);
 			}
 		}
+	}
+	
+	public function message($to, $body, $type='chat') {
+		$this->_stream->message($to, $body, $type);
 	}
 }
 

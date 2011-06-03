@@ -169,6 +169,27 @@ return array(
 		'max_attempts' => 10, // Max number of attempts until socket is disconnected.
 	),
 	
+	'xmpp' => array(
+		'enabled'       => true, // Enable XMPP Bot?
+		'host'          => 'talk.google.com', // XMPP Server
+		'port'          => 5222, // XMPP Port
+		'username'      => 'myemail', // XMPP Username. The stuff before the "@" in your email
+		'domain'        => 'gmail.com', // XMPP Domain.  The stuff after the "@" in your email
+		'password'      => 'mypassword', // Your password
+		
+		'resource'      => 'MysteriousBot', // Resource name
+		'autosubscribe' => true, // Auto subscribe (friend) back?
+		
+		'admins'        => array(
+			'my-admin-email@gmail.com', // Your email address, when contacting the bot
+		),
+		
+		'plugin_dir'    => BASE_DIR.'/xmpp_plugins/', // Must include trailing slash!
+		'plugins'       => array(
+			'exampleplugin', // Plugin
+		),
+	),
+	
 	'database' => array(
 		'enabled' => false, // Enable the DB
 		'type'   => 'pdo', // Types. Valid options are 'mysql', 'sqlite', and 'pdo'. Must be lowercase.

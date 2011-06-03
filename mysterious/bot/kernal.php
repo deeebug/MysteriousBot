@@ -137,9 +137,6 @@ class Kernal extends Singleton {
 			if ( $continue === true ) {
 				$host = $config->get('xmpp.host');
 				
-				//if ( strtolower(substr($host, 0, 6)) != 'tls://')
-					//$host = 'tls://'.$host;
-				
 				$socketid = $SM->add_client($host, $config->get('xmpp.port'), false, array($this->xmpp, 'handle_read'), 'xmppbot');
 				$this->xmpp->set_sid($socketid);
 				

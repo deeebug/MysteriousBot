@@ -1,3 +1,2 @@
 ToDo:
-	1. XMPP
-	2. Re-do parsing [For Client]
+	1. Re-do parsing [For Client]

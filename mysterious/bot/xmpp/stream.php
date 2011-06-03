@@ -26,10 +26,14 @@ use DomDocument;
 use Mysterious\Singleton;
 use Mysterious\Bot\Config;
 use Mysterious\Bot\Socket;
+use Mysterious\Bot\XMPP;
 use Mysterious\Bot\XMPPError;
+use Mysterious\Bot\IRC\BotManager;
 
 class Stream extends Singleton {
 	// Namespaces
+	// @author: phpjabberlib
+	// @link: http://code.google.com/p/phpjabberlib/source/browse/trunk/phpjabberlib/jabber/Zend/Jabber/Connection.php
 	const NS_CLIENT = 'jabber:client';
 	const NS_SERVER = 'jabber:server';
 	const NS_AUTH = 'jabber:iq:auth';
@@ -72,6 +76,7 @@ class Stream extends Singleton {
 	const MECHANISM_DIGEST_MD5 = 'DIGEST-MD5';
 	
 	// Statuses (Internal)
+	const S_NO_STATUS_SET            = 0x000;
 	const S_WAITINGFOR_FEATURES_MECH = 0x001;
 	const S_STARTING_TLS             = 0x002;
 	const S_TLS_NEGOTIATION          = 0x003;
@@ -82,23 +87,23 @@ class Stream extends Singleton {
 	const S_REQUESTING_ROSTER        = 0x008;
 	const S_LISTENING                = 0x009;
 	
-	public $roster = array();
+	public $roster             = array();
 	
 	private $clientStreamStart = "<stream:stream to='%s' xmlns='%s' xmlns:stream='%s' version='1.0'>";
 	private $serverStreamStart = '<stream:stream xmlns="%s" xmlns:stream="%s" from="%s" version="1.0">';
-	private $features = array();
-	private $mechanisms = array();
+	private $features          = array();
+	private $mechanisms        = array();
 	
-	private $status;
-	private $_config         = array();
-	private $_readstream     = '';
-	private $tls_enabled     = false;
-	private $authenticated   = false;
-	private $binded          = false;
-	private $session_started = false;
+	private $status            = self::S_NO_STATUS_SET;
+	private $_config           = array();
+	private $_readstream       = '';
+	private $tls_enabled       = false;
+	private $authenticated     = false;
+	private $binded            = false;
+	private $session_started   = false;
 	
-	protected $response   = null;
-	protected $socketid   = null;
+	protected $response        = null;
+	protected $socketid        = null;
 	
 	public function setup($socketid) {
 		$this->_config = Config::get_instance()->get('xmpp');
@@ -125,7 +130,7 @@ class Stream extends Singleton {
 	public function handle($raw) {
 		switch ( $this->status ) {
 			case self::S_WAITINGFOR_FEATURES_MECH:
-				if ( empty($this->_readstream) ) {
+				if ( substr(trim($raw), -18) != '</stream:features>' ) {
 					$this->_readstream = $raw;
 					return;
 				} else {
@@ -210,7 +215,6 @@ class Stream extends Singleton {
 				}
 			break;
 			
-			
 			case self::S_TLS_NEGOTIATION:
 				Socket::get_instance()->enable_crypto($this->socketid, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
 				$this->tls_enabled = true;
@@ -283,21 +287,11 @@ class Stream extends Singleton {
 				}
 				
 				// Now we tell the WHOLEEE world we're online!
-				$dom = new DomDocument;
-				
-				$presence = $dom->createElement('presence');
-				
-				$show = $dom->createElement('show', 'chat');
-				$presence->appendChild($show);
-				
-				$status = $dom->createElement('status', 'I am online!');
-				$presence->appendChild($status);
-				
-				$priority = $dom->createElement('priority', 25);
-				$presence->appendChild($priority);
-				
-				$dom->appendChild($presence);
-				$this->write($dom->saveXML($dom->firstChild));
+				$this->update_presence(array(
+					'show'     => 'chat',
+					'status'   => sprintf('Bot Status: Online | Connected Bots: %s', count(BotManager::get_instance()->_bots)),
+					'priority' => 25
+				));
 				
 				$this->status = self::S_LISTENING;
 			break;
@@ -312,17 +306,105 @@ class Stream extends Singleton {
 					$attrs = $message->attributes();
 					$children = $message->children();
 					$body = $children->body;
+					
 					if ( !empty($body) ) {
-						echo '**NEW MESSAGE** From: '.strval($attrs->from).' || Type: '.strval($attrs->type).' || Body: '.strval($body)."\n";
-						continue;
+						list($from_email, $from_id) = explode('/', strval($attrs->from));
+						
+						XMPP::get_instance()->run_command(array(
+							'raw'        => $raw,
+							'from'       => strval($attrs->from),
+							'from_full'  => strval($attrs->from),
+							'from_email' => $from_email,
+							'from_id'    => $from_id,
+							'type'       => strval($attrs->type),
+							'message'    => strval($body),
+							'is_admin'   => (array_search($from_email, $this->_config['admins']) === false ?: true),
+						));
 					}
-					if ( isset($children->composing) )
-						echo strval($attrs->from).' has started writing!'."\n";
-					else if ( isset($children->paused) )
-						echo strval($attrs->from).' has stopped writing!'."\n";
+				}
+				
+				foreach ( $xml->xpath("//presence") AS $presence ) {
+					$attrs = $presence->attributes();
+					$children = $presence->children();
+					$status = isset($children->status) ? strval($children->status) : null;
+					$availability = isset($children->show) ? strval($children->show) : null;
+					
+					if ( $attrs->type == 'subscribe' && $this->_config['autosubscribe'] === true ) {
+						// Do the subscribe
+						$this->update_presence('subscribe', strval($attrs->from));
+						
+						$dom = new DomDocument;
+					
+						$iqNode = $dom->createElement('iq');
+						$iqNode->setAttribute('id', 'set1');
+						$iqNode->setAttribute('type', 'set');
+						$iqNode->setAttribute('from', $this->_config['full_jid']);
+						
+						$queryNode = $dom->createElement('query');
+						$queryNode->setAttribute('xmlns', self::NS_ROSTER);
+						
+						$itemNode = $dom->createElement('item');
+						$itemNode->setAttribute('jid', strval($attrs->from));
+						$itemNode->setAttribute('name', strval($attrs->from));
+						
+						$queryNode->appendChild($itemNode);
+						$iqNode->appendChild($queryNode);
+						
+						$dom->appendChild($iqNode);
+						$this->write($dom->saveXML($dom->firstChild));
+						
+						$this->update_presence('subscribe', strval($attrs->from));
+						
+						// Now re-request the roster
+						$dom = new DomDocument;
+						
+						$iqNode = $dom->createElement('iq');
+						$iqNode->setAttribute('id', 'roster_1');
+						$iqNode->setAttribute('type', 'get');
+						$iqNode->setAttribute('from', $this->_config['full_jid']);
+						
+						$queryNode = $dom->createElement('query');
+						$queryNode->setAttribute('xmlns', self::NS_ROSTER);
+						$iqNode->appendChild($queryNode);
+						
+						$dom->appendChild($iqNode);
+						$this->write($dom->saveXML($dom->firstChild));
+						
+						$this->status = self::S_REQUESTING_ROSTER;
+					}
 				}
 			break;
 		}
 	}
+	
+	public function update_presence($element, $value=null) {
+		if ( !is_array($element) )
+			$element = array($element => $value);
+		
+		$dom = new DomDocument;		
+		$presence = $dom->createElement('presence');
+		
+		foreach ( $element AS $elem => $val ) {
+			$presence_elem = $dom->createElement($elem, $val);
+			$presence->appendChild($presence_elem);
+		}
+		
+		$dom->appendChild($presence);
+		$this->write($dom->saveXML($dom->firstChild));
+	}
+	
+	public function message($to, $body, $type='chat') {
+		$dom = new DomDocument;		
+		
+		$message = $dom->createElement('message');
+		$message->setAttribute('from', $this->_config['full_jid']);
+		$message->setAttribute('to', $to);
+		$message->setAttribute('type', $type);
+		
+		$body = $dom->createElement('body', $body);
+		$message->appendChild($body);
+		
+		$dom->appendChild($message);
+		$this->write($dom->saveXML($dom->firstChild));
+	}
 }
-
