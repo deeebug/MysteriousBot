@@ -1,6 +1,6 @@
 Welcome to MysteriousBot!
-	Version: 1.0-ALPHA1
-	Released: 5/29/2011
+	Version: 1.0-ALPHA2
+	Released: 6/3/2011
 
 ====
 
@@ -8,6 +8,8 @@ It's just another IRC Bot, that tries to do a ton of things.
 Currently, you can connect to an IRC network via two ways:
 	[*] IRC Client - Your simulating a client
 	[*] IRC Linked Server- Your linking to the server, like IRC Services
+
+You can also connect to XMPP
 
 ====
 
@@ -71,3 +73,19 @@ Message::DATA()
 Socket Server:
 	There is a socket server functionality built into MysteriousBot. You can access, i.e. send messages, or control the bot from it
 	An example is located in the misc/socket_test.php file.
+====
+XMPP:
+	Plugins go inside the xmpp_plugins directory (or where ever you put it in the config file)
+	
+	Plugins MUST extend Mysterious\Bot\XMPP\Plugin;
+	Plugins MUST have the var $data. EX: "private $data;"
+	To register a command, it's simple. Run this inside a __initialize() function:
+		- $this->register_command(COMMAND OR REGEX (SEE IRC Commands), function)
+	
+	When the command happens, you can get various information about the message in the data array ($this->data)
+	To respond:
+		$this->respond(text)
+	- or-
+		$this->message(to, message)
+
+- debug
