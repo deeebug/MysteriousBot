@@ -33,19 +33,20 @@ class Socket extends Singleton {
 	const CLIENT = 4;
 
 	public function add_client($host, $port, $ssl=false, $callback, $name='') {
-		if ( $ssl === true ) $host = 'ssl://'.$host;
+		if ( $ssl === true )
+			$protocol = 'ssl';
+		else
+			$protocol = 'tcp';
 		
 		$logger = Logger::get_instance();
+		$host = @gethostbyname($host);
 		
-		if ( ($socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) === false ) {
-			$logger->warning(__FILE__, __LINE__, 'Failed to create the socket!');
+		if ( ($socket = stream_socket_client($protocol.'://'.$host.':'.$port, $errno, $errstr, 30, STREAM_CLIENT_ASYNC_CONNECT)) === false ) {
+			$logger->warning(__FILE__, __LINE__, 'Stream socket client failed - Error number: '.$errno.' - Error Text: '.$errstr);
+			return;
 		}
 		
-		if ( (socket_connect($socket, $host, $port)) === false ) {
-			$logger->warning(__FILE__, __LINE__, 'Failed to connect to '.$host.' on port '.$port.' using ssl: '.($ssl ? 'Yes' : 'No'));
-		}
-		
-		socket_set_nonblock($socket);
+		stream_set_blocking($socket, false);
 		
 		$id = uniqid('C');
 		
@@ -61,26 +62,19 @@ class Socket extends Singleton {
 			$this->_sids[$name] = $id;
 			
 		$logger->debug(__FILE__, __LINE__, 'Added a new client. Name: '.$name.' Sid: '.$id);
-			
+		
 		return $id;
 	}
 	
 	public function add_listener($ip, $port, $callback, $on_accept, $name='') {
 		$logger = Logger::get_instance();
 		
-		if ( ($socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) === false ) {
-			$logger->warning(__FILE__, __LINE__, 'Failed to create the socket!');
+		if ( ($socket = stream_socket_server('tcp://'.$ip.':'.$port, $errno, $errstr)) === false ) {
+			$logger->warning(__FILE__, __LINE__, 'Failed to stream the socket server - Error number: '.$errno.' - Error Text: '.$errstr);
+			return;
 		}
 		
-		if ( (socket_bind($socket, $ip, $port)) === false ) {
-			$logger->warning(__FILE__, __LINE__, 'Failed to bind '.$ip.' on port '.$port.'!');
-		}
-		
-		if ( (socket_listen($socket)) === false ) {
-			$logger->warning(__FILE__, __LINE__, 'Failed to listen on socket!');
-		}
-		
-		socket_set_nonblock($socket);
+		stream_set_blocking($socket, false);
 		
 		$id = uniqid('L');
 		
@@ -130,7 +124,7 @@ class Socket extends Singleton {
 				continue;
 			
 			$e = null;
-			if ( socket_select($read, $write, $e, 1) < 1 )
+			if ( stream_select($read, $write, $e, 1) < 1 )
 				continue;
 				
 			// Do the writes
@@ -149,7 +143,7 @@ class Socket extends Singleton {
 					}
 					
 					// Let's start writing!
-					$writed = socket_write($socket, $this->queue_write[$sid]);
+					$writed = fwrite($socket, $this->queue_write[$sid]);
 					
 					foreach ( explode("\n", $this->queue_write[$sid]) AS $payload ) {
 						if ( empty($payload) ) continue;
@@ -171,22 +165,17 @@ class Socket extends Singleton {
 
 					// Oh hey, we have a connection
 					if ( substr($sid, 0, 1) == 'L' ) {
-						if (($client = @socket_accept($this->_sockets[$sid]['socket'])) === FALSE) continue;
+						if (($client = @stream_socket_accept($this->_sockets[$sid]['socket'])) === FALSE) continue;
 						$cid = uniqid('c');
-						$address = '';
-						$port = 0;
-						socket_getpeername($client, $address, $port);
 
 						$this->_sockets[$cid] = array(
 							'socket' => $client,
-							'address' => $address,
-							'port' => $port,
 							'callback' => $this->_sockets[$sid]['callback'],
 						);
 						
-						call_user_func($this->_sockets[$sid]['on_accept'], $cid, $address, $port);
+						call_user_func($this->_sockets[$sid]['on_accept'], $cid);
 					} else {
-						$read_data = socket_read($this->_sockets[$sid]['socket'], 65536);
+						$read_data = fread($this->_sockets[$sid]['socket'], 65536);
 						
 						// Socket died.
 						if ( $read_data === false ) {
@@ -212,7 +201,7 @@ class Socket extends Singleton {
 	
 	public function close($id) {
 		if ( isset($this->_sockets[$id]) ) {
-			socket_close($this->_sockets[$id]['socket']);
+			fclose($this->_sockets[$id]['socket']);
 			unset($this->_sockets[$id]);
 			
 			Logger::get_instance()->info(__FILE__, __LINE__, '[Socket] Closed socket id '.$id);

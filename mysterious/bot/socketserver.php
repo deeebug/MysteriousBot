@@ -44,7 +44,7 @@ class SocketServer extends Singleton {
 		}
 	}
 	
-	public function new_connection($socketid, $address, $port) {
+	public function new_connection($socketid) {
 		if ( count($this->_clients) >= Config::get_instance()->get('socketserver.max_clients') ) {
 			Socket::get_instance()->write($socketid, 'ERROR Too many clients are connected - Limit '.Config::get_instance()->get('socketserver.max_clients'));
 			Socket::get_instance()->close($socketid);
@@ -56,8 +56,6 @@ class SocketServer extends Singleton {
 		$this->_clients[$socketid] = array(
 			'connected'   => time(),
 			'last_action' => time(),
-			'address'     => $address,
-			'port'        => $port,
 			'socketid'    => $socketid,
 			'challenge'   => $challenge,
 			'attempts'    => 0,
