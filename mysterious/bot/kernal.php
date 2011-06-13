@@ -25,6 +25,7 @@ use Mysterious\Bot\IRC\BotManager;
 
 class Kernal extends Singleton {
 	public $SOCKET_SID;
+	public $HTTP_SID;
 	
 	// Objects
 	private $bot;
@@ -43,25 +44,6 @@ class Kernal extends Singleton {
 		// Did they edit the "yes_i_edited_this" key?
 		if ( $config->get('yes_i_edited_this') === false )
 			throw new KernalError('Configuration error - Please change the key "yes_i_edited_this" to true! (Hint: Its at the bottom of the file)');
-		
-		// Now lets start the socket server, if they enabled it
-		if ( $config->get('socketserver.enabled') === true ) {
-			$required_settings = array(
-				'socketserver.ip', 'socketserver.port'
-			);
-			
-			foreach ( $required_settings AS $setting ) {
-				if ( $config->get($setting) === false || is_empty($config->get($setting)) ) {
-					throw new KernalError('Configuration error - The setting "'.$setting.'" is not set/empty! Please double check the config file, edit fully, and read all comments and documentation!');
-				}
-			}
-			
-			SocketServer::get_instance()->setup();
-			
-			$ip   = $config->get('socketserver.ip');
-			$port = $config->get('socketserver.port');
-			$this->SOCKET_SID = $SM->add_listener($ip, $port, array(SocketServer::get_instance(), 'handle_read'), array(SocketServer::get_instance(), 'new_connection'), 'socketserver');
-		}
 		
 		// Now let's go on to setup the IRC Bot
 		$setup = false;
@@ -147,6 +129,44 @@ class Kernal extends Singleton {
 		// Did we spawn any clients?
 		if ( $setup === false ) {
 			throw new KernalError('No clients are spawned. Check the config?');
+		}
+		
+		// Now lets start the socket server, if they enabled it
+		if ( $config->get('socketserver.enabled') === true ) {
+			$required_settings = array(
+				'socketserver.ip', 'socketserver.port'
+			);
+			
+			foreach ( $required_settings AS $setting ) {
+				if ( $config->get($setting) === false || is_empty($config->get($setting)) ) {
+					throw new KernalError('Configuration error - The setting "'.$setting.'" is not set/empty! Please double check the config file, edit fully, and read all comments and documentation!');
+				}
+			}
+			
+			SocketServer::get_instance()->setup();
+			
+			$ip   = $config->get('socketserver.ip');
+			$port = $config->get('socketserver.port');
+			$this->SOCKET_SID = $SM->add_listener($ip, $port, array(SocketServer::get_instance(), 'handle_read'), array(SocketServer::get_instance(), 'new_connection'), 'socketserver');
+		}
+		
+		// Now lets start the HTTP server, if they enabled it
+		if ( $config->get('httpserver.enabled') === true ) {
+			$required_settings = array(
+				'httpserver.ip', 'httpserver.port', 'httpserver.webroot'
+			);
+			
+			foreach ( $required_settings AS $setting ) {
+				if ( $config->get($setting) === false || is_empty($config->get($setting)) ) {
+					throw new KernalError('Configuration error - The setting "'.$setting.'" is not set/empty! Please double check the config file, edit fully, and read all comments and documentation!');
+				}
+			}
+			
+			HTTPServer::get_instance()->setup();
+			
+			$ip   = $config->get('httpserver.ip');
+			$port = $config->get('httpserver.port');
+			$this->HTTP_SID = $SM->add_listener($ip, $port, array(HTTPServer::get_instance(), 'handle_read'), array(HTTPServer::get_instance(), 'new_connection'), 'httpserver', array('noexplode'=>true));
 		}
 		
 		// Start the plugin manager

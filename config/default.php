@@ -169,6 +169,16 @@ return array(
 		'max_attempts' => 10, // Max number of attempts until socket is disconnected.
 	),
 	
+	'httpserver'  => array(
+		'enabled'      => false, // Enable the HTTP Server - WebUI
+		'ip'           => '127.0.0.1', // Port for the socket server to run on. Usually 127.0.0.1
+		'port'         => 8008, // Port for the socket server to run on
+		'webroot'      => BASE_DIR.'public/', // The webroot of the HTTP Server. Must include trailing slash!
+		'protect'      => true, // Protect the HTTP Server with a password?
+		'password'     => 'abcGTFO', // The password.
+		'max_clients'  => 30, // Max number of clients accepted to be connected. Keep it relatively high (30-ish)
+	),
+	
 	'xmpp' => array(
 		'enabled'       => true, // Enable XMPP Bot?
 		'host'          => 'talk.google.com', // XMPP Server

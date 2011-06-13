@@ -32,7 +32,7 @@ class Socket extends Singleton {
 	const LISTENER = 2;
 	const CLIENT = 4;
 
-	public function add_client($host, $port, $ssl=false, $callback, $name='') {
+	public function add_client($host, $port, $ssl=false, $callback, $name='', $options=array()) {
 		if ( $ssl === true )
 			$protocol = 'ssl';
 		else
@@ -58,15 +58,20 @@ class Socket extends Singleton {
 			'callback' => $callback
 		);
 		
-		if ( !empty($name) )
+		if ( !empty($name) ) {
+			$this->_sockets[$id]['name'] = $name;
 			$this->_sids[$name] = $id;
-			
+		}
+		
+		if ( !empty($options) )
+			$this->_sockets[$id]['options'] = $options;
+		
 		$logger->debug(__FILE__, __LINE__, 'Added a new client. Name: '.$name.' Sid: '.$id);
 		
 		return $id;
 	}
 	
-	public function add_listener($ip, $port, $callback, $on_accept, $name='') {
+	public function add_listener($ip, $port, $callback, $on_accept, $name='', $options=array()) {
 		$logger = Logger::get_instance();
 		
 		if ( ($socket = stream_socket_server('tcp://'.$ip.':'.$port, $errno, $errstr)) === false ) {
@@ -86,8 +91,13 @@ class Socket extends Singleton {
 			'callback'  => $callback
 		);
 		
-		if ( !empty($name) )
+		if ( !empty($name) ) {
+			$this->_sockets[$id]['name'] = $name;
 			$this->_sids[$name] = $id;
+		}
+		
+		if ( !empty($options) )
+			$this->_sockets[$id]['options'] = $options;
 		
 		return $id;
 	}
@@ -145,7 +155,12 @@ class Socket extends Singleton {
 					// Let's start writing!
 					$writed = fwrite($socket, $this->queue_write[$sid]);
 					
-					foreach ( explode("\n", $this->queue_write[$sid]) AS $payload ) {
+					if ( isset($this->_sockets[$sid]['options']['noexplode']) && $this->_sockets[$sid]['options']['noexplode'] == true )
+						$data = $this->queue_write[$sid];
+					else
+						$data = explode("\n", $this->queue_write[$sid]);
+					
+					foreach ( $data AS $payload ) {
 						if ( empty($payload) ) continue;
 						$logger->debug(__FILE__, __LINE__, '[Socket] Write payload to '.$sid.' :'.$payload);
 					}
@@ -167,11 +182,19 @@ class Socket extends Singleton {
 					if ( substr($sid, 0, 1) == 'L' ) {
 						if (($client = @stream_socket_accept($this->_sockets[$sid]['socket'])) === FALSE) continue;
 						$cid = uniqid('c');
-
+						
 						$this->_sockets[$cid] = array(
 							'socket' => $client,
 							'callback' => $this->_sockets[$sid]['callback'],
 						);
+						
+						$info = $this->get_name($cid);
+						
+						$this->_sockets[$cid]['ip'] = $info['ip'];
+						$this->_sockets[$cid]['port'] = $info['port'];
+						
+						if ( isset($this->_sockets[$sid]['options']) )
+							$this->_sockets[$cid]['options'] = $this->_sockets[$sid]['options'];
 						
 						call_user_func($this->_sockets[$sid]['on_accept'], $cid);
 					} else {
@@ -182,7 +205,10 @@ class Socket extends Singleton {
 							$this->close($sid);
 						}
 						
-						$data = explode("\n", $read_data);
+						if ( isset($this->_sockets[$sid]['options']['noexplode']) && $this->_sockets[$sid]['options']['noexplode'] == true )
+							$data = array($read_data);
+						else
+							$data = explode("\n", $read_data);
 						
 						foreach ( $data AS $line ) {
 							if ( strlen($line) == 0 ) continue;
@@ -219,7 +245,28 @@ class Socket extends Singleton {
 		stream_socket_enable_crypto($this->_sockets[$socketid]['socket'], $enable, $type);
 	}
 	
-	public function write($socketid, $payload) {
+	public function get_name($socketid) {
+		if ( !isset($this->_sockets[$socketid]) ) return false;
+		
+		list($ip, $port) = explode(':', stream_socket_get_name($this->_sockets[$socketid]['socket'], true));
+		
+		return array('ip'=>$ip, 'port'=>$port);
+	}
+	
+	public function get_data($socketid) {
+		if ( !isset($this->_sockets[$socketid]) ) return false;
+		
+		return $this->_sockets[$socketid];
+	}
+	
+	public function write($socketid, $payload, $fast=false) {
+		if ( $fast === true ) {
+			if ( !isset($this->_sockets[$socketid]) ) return false;
+			
+			fwrite($this->_sockets[$socketid]['socket'], $payload, strlen($payload));
+			return;
+		}
+		
 		if ( !is_array($payload) )
 			$payload = array($payload);
 		

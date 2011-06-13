@@ -86,7 +86,7 @@ class XMPP extends Singleton {
 	public function run_command($message) {
 		// Is it a message? Send to the plugin subsystem.
 		foreach ( $this->_commands AS $data ) {
-			if ( preg_match($data['regex'], $message['message']) && is_callable($data['callback']) ) {s
+			if ( preg_match($data['regex'], $message['message']) && is_callable($data['callback']) ) {
 				call_user_func(array($this->_plugins[strtolower($data['plugin'])], '__setdata'), $message);
 				call_user_func($data['callback']);
 			}

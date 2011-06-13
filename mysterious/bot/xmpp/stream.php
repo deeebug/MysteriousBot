@@ -381,7 +381,7 @@ class Stream extends Singleton {
 		if ( !is_array($element) )
 			$element = array($element => $value);
 		
-		$dom = new DomDocument;		
+		$dom = new DomDocument;
 		$presence = $dom->createElement('presence');
 		
 		foreach ( $element AS $elem => $val ) {
