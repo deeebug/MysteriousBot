@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/26/2011                            ##
-##  [*] Last edit: 5/29/2011                          ##
+##  [*] Last edit: 6/16/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -45,7 +45,7 @@ class Timer {
 			'once' => $once
 		);
 		
-		Logger::get_instance()->debug(__FILE__, __LINE__, '[Timer] New timer '.$id.' registered for +'.$when.' seconds');
+		Logger::get_instance()->info(__FILE__, __LINE__, '[Timer] New timer '.$id.' registered for +'.$when.' seconds');
 		return $id;
 	}
 	

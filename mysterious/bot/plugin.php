@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/26/2011                            ##
-##  [*] Last edit: 6/1/2011                           ##
+##  [*] Last edit: 6/16/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -100,7 +100,7 @@ abstract class Plugin {
 					$args[0] = 'irc.'.$args[0];
 				
 				Event::register($args[0], $args[1], $plugin, $this->__bot);
-				Logger::get_instance()->debug(__FILE__, __LINE__, '[Plugin '.get_class($this).'] Registered new catch all for '.$args[0].' for bot '.$this->__bot);
+				Logger::get_instance()->info(__FILE__, __LINE__, '[Plugin '.get_class($this).'] Registered new catch all for '.$args[0].' for bot '.$this->__bot);
 			break;
 			
 			// Its a specific command, or regex.
@@ -115,7 +115,7 @@ abstract class Plugin {
 					$args[1] = '/^'.$args[1].'/';
 				
 				Event::register_command($args[0], $args[1], $args[2], $plugin, $this->__bot);
-				Logger::get_instance()->debug(__FILE__, __LINE__, '[Plugin '.get_class($this).'] Registered new command for '.$args[1].' ('.$args[0].') for bot '.$this->__bot);
+				Logger::get_instance()->info(__FILE__, __LINE__, '[Plugin '.get_class($this).'] Registered new command for '.$args[1].' ('.$args[0].') for bot '.$this->__bot);
 			break;
 		}
 		

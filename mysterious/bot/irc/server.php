@@ -64,7 +64,7 @@ class Server {
 		// Do the ping. We won't plugins handle it, we want the ping out ASAP!
 		if ( substr($data['raw'], 0, 4) == 'PING' ) {
 			$this->_lastping = time();
-			Logger::get_instance()->debug(__FILE__, __LINE__, '[IRC] Ping? Pong!');
+			Logger::get_instance()->info(__FILE__, __LINE__, '[IRC] Ping? Pong!');
 			$this->raw('PONG '.substr($data['raw'], 5));
 			return;
 		}

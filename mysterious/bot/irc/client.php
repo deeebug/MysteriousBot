@@ -66,7 +66,7 @@ class Client {
 		// Do the ping. We won't plugins handle it, we want the ping out ASAP!
 		if ( substr($data['raw'], 0, 4) == 'PING' ) {
 			$this->_lastping = time();
-			Logger::get_instance()->debug(__FILE__, __LINE__, '[IRC] Ping? Pong!');
+			Logger::get_instance()->info(__FILE__, __LINE__, '[IRC] Ping? Pong!');
 			$this->raw('PONG '.substr($data['raw'], 5));
 			return;
 		}
@@ -146,7 +146,7 @@ class Client {
 			
 			case 'JOIN':
 				if ( $data['nick'] == $this->curnick ) {
-					Logger::get_instance()->debug(__FILE__, __LINE__, '[IRC] Joined channel '.$data['channel'].' - Getting information');
+					Logger::get_instance()->debug(__FILE__, __LINE__, '[IRC] Joined channel '.$data['channel']);
 					
 					$this->raw(array(
 						'WHO '.$data['channel'],
@@ -413,7 +413,6 @@ class Client {
 			if ( !isset($data[$info]) ) continue;
 			
 			$this->users[$data['nick']]->$info = $data[$info];
-			Logger::get_instance()->debug(__FILE__, __LINE__, __METHOD__ .'set '.$info.' = '.$data[$info]);
 		}
 	}
 	

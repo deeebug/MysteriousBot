@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 6/2/2011                           ##
+##  [*] Last edit: 6/16/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -23,10 +23,10 @@ use Mysterious\Singleton;
 class Socket extends Singleton {
 	public $lines_sent = 0;
 	public $lines_read = 0;
+	public $_sockets = array();
 	
 	private $queue_write = array();
 	private $_loop = true;
-	private $_sockets = array();
 	private $_sids = array();
 	
 	const LISTENER = 2;
@@ -66,7 +66,7 @@ class Socket extends Singleton {
 		if ( !empty($options) )
 			$this->_sockets[$id]['options'] = $options;
 		
-		$logger->debug(__FILE__, __LINE__, 'Added a new client. Name: '.$name.' Sid: '.$id);
+		$logger->info(__FILE__, __LINE__, 'Added a new client. Name: '.$name.' Sid: '.$id);
 		
 		return $id;
 	}
@@ -98,6 +98,8 @@ class Socket extends Singleton {
 		
 		if ( !empty($options) )
 			$this->_sockets[$id]['options'] = $options;
+		
+		$logger->info(__FILE__, __LINE__, 'Added a new listener. Name: '.$name.' Sid: '.$id);
 		
 		return $id;
 	}
@@ -162,7 +164,7 @@ class Socket extends Singleton {
 					
 					foreach ( $data AS $payload ) {
 						if ( empty($payload) ) continue;
-						$logger->debug(__FILE__, __LINE__, '[Socket] Write payload to '.$sid.' :'.$payload);
+						$logger->debug(__FILE__, __LINE__, '[Socket] Wrote payload to '.$sid.' :'.$payload);
 					}
 					
 					$this->lines_sent += count(explode("\n", $this->queue_write[$sid]));
@@ -181,7 +183,7 @@ class Socket extends Singleton {
 					// Oh hey, we have a connection
 					if ( substr($sid, 0, 1) == 'L' ) {
 						if (($client = @stream_socket_accept($this->_sockets[$sid]['socket'])) === FALSE) continue;
-						$cid = uniqid('c');
+						$cid = uniqid('C');
 						
 						$this->_sockets[$cid] = array(
 							'socket' => $client,
@@ -197,6 +199,8 @@ class Socket extends Singleton {
 							$this->_sockets[$cid]['options'] = $this->_sockets[$sid]['options'];
 						
 						call_user_func($this->_sockets[$sid]['on_accept'], $cid);
+						
+						$logger->debug(__FILE__, __LINE__, 'Listener got a client. IP: '.$info['ip'].' Port: '.$info['port'].' Cid: '.$cid);
 					} else {
 						$read_data = fread($this->_sockets[$sid]['socket'], 65536);
 						
@@ -230,7 +234,7 @@ class Socket extends Singleton {
 			fclose($this->_sockets[$id]['socket']);
 			unset($this->_sockets[$id]);
 			
-			Logger::get_instance()->info(__FILE__, __LINE__, '[Socket] Closed socket id '.$id);
+			Logger::get_instance()->debug(__FILE__, __LINE__, '[Socket] Closed socket id '.$id);
 		}
 	}
 	

@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 6/13/2011                            ##
-##  [*] Last edit: 6/13/2011                          ##
+##  [*] Last edit: 6/16/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -67,31 +67,25 @@ class HTTPServer extends Singleton {
 		'jpeg' => 'image/jpeg',
 		'ico'  => 'image/x-icon'
 	);
+	private $_log = array();
 	private $_timerid = false;
 	
-	public function setup() {
-		if ( $this->_timerid === false ) {
-			$this->_timerid = Timer::register(30, array($this, 'cleanup'));
-		}
+	public function addlog($log) {
+		$this->_log[] = date('h:i:s').' '.$log;
 	}
 	
-	public function cleanup() {
-		foreach ( $this->_clients AS $socketid => $info ) {
-			if ( time()-30 >= $info['last_action'] ) {
-				Socket::get_instance()->close($socketid);
-			}
-		}
-	}
+	public function setup() { } // Does nothing.
 	
-	public function new_connection($socketid) {
-		if ( count($this->_clients) >= Config::get_instance()->get('httpserver.max_clients') ) {
-			$this->generate_response($socketid, 503, 'text/html', 'Max clients '.Config::get_instance()->get('httpserver.max_clients').' reached!'.str_repeat('<!-- Padding -->'."\n",20));
-		}
-	}
+	public function new_connection($socketid) { } // Does nothing.
 	
 	public function handle_read($socketid, $raw) {
+		$this->addlog = true;
 		$parsed = $this->_parse($socketid, $raw);
+		
 		$this->serve($socketid, $parsed);
+		
+		if ( $this->closed === false )
+			Socket::get_instance()->close($socketid);
 	}
 	
 	private function _parse($socketid, $raw) {
@@ -122,21 +116,24 @@ class HTTPServer extends Singleton {
 		
 		// Parse the URI
 		$tmp = parse_url($parsed['URI']);
-		
 		$parsed['PATH'] = $tmp['path'];
 		
 		if ( isset($tmp['query']) ) {
 			$parsed['QUERYSTR'] = $tmp['query'];
-			$parsed['HTTP_'.$parsed['METHOD'].'_VARS'] = filter_input_array(constant('INPUT_'.$parsed['METHOD']), parse_str($tmp['query']));
+			parse_str($tmp['query'], $query);
+			$parsed['HTTP_'.$parsed['METHOD'].'_VARS'] = $query;
 		}
 		
 		// Parse the directory/file
-		if ( empty($parsed['PATH']) )
-			$parsed['PATH'] = 'index.php';
-			
 		$tmp = explode('/', $parsed['PATH']);
 		$parsed['FILE'] = array_pop($tmp);
 		$parsed['DIR'] = implode('/', $tmp);
+		
+		// Empty file? Baaaad....
+		if ( empty($parsed['FILE']) ) {
+			if ( !empty($parsed['DIR']) ) $parsed['DIR']  .= '/'.$parsed['FILE'];
+			$parsed['FILE'] = 'index.php';
+		}
 		
 		// Get file ext.
 		$tmp = explode('.', $parsed['FILE']);
@@ -152,8 +149,17 @@ class HTTPServer extends Singleton {
 		// Fill global vars.
 		if ( isset($parsed['HTTP_'.$parsed['METHOD'].'_VARS']) ) {
 			$_REQUEST = $_GET = $_POST = array();
-			$method = '_'.$parsed['METHOD'];
-			$_REQUEST = $$method = $parsed['HTTP_'.$parsed['METHOD'].'_VARS'];
+			
+			switch ( $parsed['METHOD'] ) {
+				default:
+				case 'GET':
+					$_REQUEST = $_GET = $parsed['HTTP_'.$parsed['METHOD'].'_VARS'];
+				break;
+				
+				case 'POST':
+					$_REQUEST = $_POST = $parsed['HTTP_'.$parsed['METHOD'].'_VARS'];
+				break;
+			}
 		}
 		
 		unset($tmp);
@@ -162,9 +168,11 @@ class HTTPServer extends Singleton {
 	}
 	
 	private function serve($socketid, $parseddata) {
-		$file = Config::get_instance()->get('httpserver.webroot').$parseddata['URI'];
+		$file = Config::get_instance()->get('httpserver.webroot').$parseddata['DIR'].'/'.$parseddata['FILE'];
 		
-		if ( file_exists($file) && is_file($file) ) {
+		if ( ($data = $this->_servespecial($parseddata)) !== false ) {
+			$this->generate_response($socketid, 200, 'text/plain', $data);
+		} else if ( file_exists($file) && is_file($file) ) {
 			$return = file_get_contents($file);
 			
 			if ( stripos($return, '<?php') !== false ) {
@@ -180,6 +188,142 @@ class HTTPServer extends Singleton {
 			$this->generate_response($socketid, 200, $this->get_type($parseddata['FILE_EXT']), $return);
 		} else {
 			$this->generate_response($socketid, 404, 'text/html', '<html><head><title>404 Not Found</title></head><body bgcolor="white"><center><h1>404 Not Found</h1></center><hr><center>MysteriousBot/'.MYSTERIOUSBOT_VERSION.'</center></body></html>'.str_repeat('<!-- Padding, goddamn padding -->'."\n", 10));
+		}
+	}
+	
+	private function _servespecial($data) {
+		if ( $data['DIR'] != 'api' && array_search(strtolower($data['FILE']), array('getbots', 'boot', 'shutdown', 'getsockets', 'socketshutdown', 'shutdownbot', 'checkconsole', 'consolepoll')) === false ) return false;
+		
+		switch ( strtolower($data['FILE']) ) {
+			// Bots
+			case 'getbots':
+				$stuff = array();
+				
+				foreach ( Config::get_instance()->get('clients') AS $botuuid => $botdata ) {
+					if ( BotManager::get_instance()->get_bot($botuuid) !== false ) {
+						$bot = BotManager::get_instance()->get_bot($botuuid);
+						$nick = isset($botdata['nick']) ? $botdata['nick'] : 'N/A';
+						$ident = isset($botdata['ident']) ? $botdata['ident'] : 'N/A';
+						$name = isset($botdata['name']) ? $botdata['name'] : 'N/A';
+						$status = true;
+						
+						if ( isset($bot->channels) && !isset($bot->enforcer) )
+							$channels = array_keys($bot->channels);
+						else
+							$channels = array('N/A');
+					} else {
+						$nick = $ident = $name = 'N/A';
+						$status = false;
+						$channels = array('N/A');
+					}
+					
+					$stuff[] = array(
+						'status' => $status,
+						'uuid' => $botuuid,
+						'server' => $botdata['server'],
+						'port' => $botdata['port'],
+						'nick' => $nick,
+						'ident' => $ident,
+						'name' => $name,
+						'type' => ucfirst(strtolower($botdata['type'])),
+						'channels' => implode(',', $channels)
+					);
+				}
+				
+				return json_encode($stuff);
+			break;
+			
+			case 'boot':
+				if ( !isset($_GET['uuid']) )
+					return 'ERROR:No UUID.';
+				
+				if ( Config::get_instance()->get('clients.'.$_GET['uuid'], false) === false )
+					return 'ERROR:Unknown UUID.';
+				
+				try {
+					Kernal::get_instance()->boot($_GET['uuid'], Config::get_instance()->get('clients.'.$_GET['uuid']));
+					return 'OKAY:Booted';
+				} catch ( KernalError $e ) {
+					return 'ERROR:'.$e->getMessage();
+				}
+			break;
+			
+			case 'shutdown':
+				if ( !isset($_GET['uuid']) )
+					return 'ERROR:No UUID.';
+				
+				if ( Config::get_instance()->get('clients.'.$_GET['uuid'], false) === false )
+					return 'ERROR:Unknown UUID.';
+				
+				try {
+					Kernal::get_instance()->shutdown($_GET['uuid']);
+					return 'OKAY:Shutdown';
+				} catch ( KernalError $e ) {
+					return 'ERROR:'.$e->getMessage();
+				}
+			break;
+			
+			/////// Socket page
+			case 'getsockets':
+				$rtn = array();
+				
+				foreach ( Socket::get_instance()->_sockets AS $sid => $data ) {
+					$type = (substr(strtolower($sid), 0, 1) == 'c' ? 'Client' : 'Listener');
+					$host = isset($data['host']) ? $data['host'] : $data['ip'];
+					$ssl = isset($data['ssl']) ? $data['ssl'] : false;
+					
+					if ( is_array($data['callback']) )
+						$callback = 'Class: '.(is_object($data['callback'][0]) ? get_class($data['callback'][0]) : $data['callback'][0]).' | Function: '.$data['callback'][1];
+					else
+						$callback = 'Unknown';
+					
+					$rtn[] = array(
+						'id' => $sid,
+						'type' => $type,
+						'host' => $host,
+						'port' => $data['port'],
+						'ssl' => $ssl,
+						'callback' => $callback
+					);
+				}
+				
+				return json_encode($rtn);
+			break;
+			
+			case 'socketshutdown':
+				if ( !isset($_GET['sid']) )
+					return 'ERROR:No Socket ID.';
+				
+				if ( Socket::get_instance()->get_data($_GET['sid']) === false )
+					return 'ERROR:Unknown UUID.';
+				
+				Socket::get_instance()->close($_GET['sid']);
+				return 'OKAY:Shutdown';
+			break;
+			
+			//// Shutdown bot
+			case 'shutdownbot':
+				Kernal::get_instance()->stop_loop();
+			break;
+			
+			// Console
+			case 'checkconsole':
+				if ( ($logger = Config::get_instance()->get('logger.default', null)) != 'STDOUT_HTTP' ) {
+					return 'ERROR:Error - Your default logger must be "STDOUT_HTTP", instead of what it is currently ('.$logger.')';
+				}
+				
+				return 'OKAY:Proceed';
+			break;
+			
+			case 'consolepoll':
+				$rtn = implode("\n", $this->_log);
+				
+				return implode("\n", $this->_log);
+			break;
+			
+			default:
+				return false;
+			break;
 		}
 	}
 	
@@ -205,6 +349,7 @@ class HTTPServer extends Singleton {
 		
 		Socket::get_instance()->write($socketid, $response, true);
 		Socket::get_instance()->close($socketid);
+		$this->closed = true;
 	}
 	
 	private function code($num) {

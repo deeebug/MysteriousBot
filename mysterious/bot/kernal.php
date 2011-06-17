@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/23/2011                            ##
-##  [*] Last edit: 5/28/2011                          ##
+##  [*] Last edit: 6/16/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -26,6 +26,7 @@ use Mysterious\Bot\IRC\BotManager;
 class Kernal extends Singleton {
 	public $SOCKET_SID;
 	public $HTTP_SID;
+	public $init_complete = false;
 	
 	// Objects
 	private $bot;
@@ -38,6 +39,7 @@ class Kernal extends Singleton {
 			throw new KernalError('Fatal error - Please run MysteriousBot from the command line!');
 		
 		$config = Config::get_instance();
+		$logger = Logger::get_instance();
 		$this->bot = BotManager::get_instance();
 		$SM = Socket::get_instance();
 		
@@ -48,54 +50,14 @@ class Kernal extends Singleton {
 		// Now let's go on to setup the IRC Bot
 		$setup = false;
 		foreach ( $config->get('clients') AS $uuid => $settings ) {
-			if ( $settings['enabled'] === false ) continue;
+			if ( $settings['enabled'] !== true ) continue;
 			
-			// Get the required settings for each type, and verify the type.
-			switch ( strtolower($settings['type']) ) {
-				case 'client':
-					$required_settings = array(
-						'server', 'port', 'nick', 'ident', 'name'
-					);
-					$one_client = false;
-					$func = 'create_client';
-				break;
-				
-				case 'server':
-					$required_settings = array(
-						'server', 'port', 'linkpass', 'linkname', 'linkdesc'
-					);
-					$one_client = true;
-					$func = 'create_server';
-				break;
-				
-				default:
-					throw new KernalError('Configuration error - Unknown type for client id '.$uuid.' (clients.'.$uuid.'.type)');
-				break;
+			try {
+				if ( $this->boot($uuid, $settings) )
+					$setup = true;
+			} catch ( KernalError $e ) {
+				Logger::get_instance()->warning(__FILE__, __LINE__, 'Failed to boot bot '.$uuid.' - '.$e->getMessage());
 			}
-			
-			foreach ( $required_settings AS $setting ) {
-				if ( $config->get('clients.'.$uuid.'.'.$setting) === false || is_empty($config->get('clients.'.$uuid.'.'.$setting)) ) {
-					throw new KernalError('Configuration error - '.$settings['type'].' requires setting '.$setting.' to be set/not empty. (clients.'.$uuid.'.'.$setting.')');
-				}
-			}
-			
-			if ( $one_client === true ) {
-				if ( !isset($settings['clients']) || count($settings['clients']) < 1 ) {
-					throw new KernalError('Configuration error - '.$settings['type'].' requires atleast one client set in the sub-block of itself.');
-				}
-			}
-			
-			// We have SSL?
-			if ( !isset($settings['ssl']) )
-				$settings['ssl'] = false;
-			
-			// Create it!
-			$this->bot->$func($uuid, $settings);
-			
-			// Now lets get the socket running.
-			$socketid = $SM->add_client($settings['server'], $settings['port'], $settings['ssl'], array($this->bot, 'handle_read'), $uuid);
-			$this->bot->set_sid($uuid, $socketid);
-			$setup = true;
 		}
 		
 		// Set up the XMPP Bot
@@ -107,22 +69,18 @@ class Kernal extends Singleton {
 			}
 			
 			$this->xmpp = XMPP::get_instance();
-			$continue = true;
 			
 			try {
 				$this->xmpp->setup();
-			} catch ( XMPPError $e ) {
-				Logger::get_instance()->warning(__FILE__, __LINE__, '[XMPP] '.$e->getMessage());
-				$continue = false;
-			}
-			
-			if ( $continue === true ) {
 				$host = $config->get('xmpp.host');
 				
 				$socketid = $SM->add_client($host, $config->get('xmpp.port'), false, array($this->xmpp, 'handle_read'), 'xmppbot');
 				$this->xmpp->set_sid($socketid);
 				
 				$setup = true;
+				$logger->info(__FILE__, __LINE__, 'XMPP bot booted up.');
+			} catch ( XMPPError $e ) {
+				Logger::get_instance()->warning(__FILE__, __LINE__, '[XMPP] '.$e->getMessage());
 			}
 		}
 		
@@ -148,6 +106,7 @@ class Kernal extends Singleton {
 			$ip   = $config->get('socketserver.ip');
 			$port = $config->get('socketserver.port');
 			$this->SOCKET_SID = $SM->add_listener($ip, $port, array(SocketServer::get_instance(), 'handle_read'), array(SocketServer::get_instance(), 'new_connection'), 'socketserver');
+			$logger->info(__FILE__, __LINE__, 'SocketServer booted up. Listening for connections on '.$ip.':'.$port);
 		}
 		
 		// Now lets start the HTTP server, if they enabled it
@@ -167,19 +126,113 @@ class Kernal extends Singleton {
 			$ip   = $config->get('httpserver.ip');
 			$port = $config->get('httpserver.port');
 			$this->HTTP_SID = $SM->add_listener($ip, $port, array(HTTPServer::get_instance(), 'handle_read'), array(HTTPServer::get_instance(), 'new_connection'), 'httpserver', array('noexplode'=>true));
+			$logger->info(__FILE__, __LINE__, 'HTTPServer booted up. Listening for connections on '.$ip.':'.$port);
 		}
 		
 		// Start the plugin manager
 		PluginManager::get_instance()->do_autoload();
+		$this->init_complete = true;
 		
 		// Setup the DB Connection
 		if ( $config->get('database.enabled') === true ) {
 			require BASE_DIR.'database/db.php';
 			DB::get_instance()->setup();
+			
+			$logger->info(__FILE__, __LINE__, 'Setup database server');
 		}
 		
 		// Everything is ready!
 		return $this;
+	}
+	
+	public function boot($uuid, $settings) {
+		$config = Config::get_instance();
+		$logger = Logger::get_instance();
+		
+		// Get the required settings for each type, and verify the type.
+		switch ( strtolower($settings['type']) ) {
+			case 'client':
+				$required_settings = array(
+					'server', 'port', 'nick', 'ident', 'name'
+				);
+				$one_client = false;
+				$func = 'create_client';
+			break;
+			
+			case 'server':
+				$required_settings = array(
+					'server', 'port', 'linkpass', 'linkname', 'linkdesc'
+				);
+				$one_client = true;
+				$func = 'create_server';
+			break;
+			
+			default:
+				throw new KernalError('Configuration error - Unknown type for client id '.$uuid.' (clients.'.$uuid.'.type)');
+			break;
+		}
+		
+		foreach ( $required_settings AS $setting ) {
+			if ( $config->get('clients.'.$uuid.'.'.$setting) === false || is_empty($config->get('clients.'.$uuid.'.'.$setting)) ) {
+				throw new KernalError('Configuration error - '.$settings['type'].' requires setting '.$setting.' to be set/not empty. (clients.'.$uuid.'.'.$setting.')');
+			}
+		}
+		
+		if ( $one_client === true ) {
+			if ( !isset($settings['clients']) || count($settings['clients']) < 1 ) {
+				throw new KernalError('Configuration error - '.$settings['type'].' requires atleast one client set in the sub-block of itself.');
+			}
+		}
+		
+		// We have SSL?
+		if ( !isset($settings['ssl']) )
+			$settings['ssl'] = false;
+		
+		// Create it!
+		$this->bot->$func($uuid, $settings);
+		
+		// Now lets get the socket running.
+		$socketid = Socket::get_instance()->add_client($settings['server'], $settings['port'], $settings['ssl'], array($this->bot, 'handle_read'), $uuid);
+		$this->bot->set_sid($uuid, $socketid);
+		
+		$logger->info(__FILE__, __LINE__, 'Bot '.$uuid.' booted up');
+		
+		// Update XMPP Bot.
+		if ( $config->get('xmpp.enabled', false) !== false ) {
+			$xmppstream = XMPP\Stream::get_instance();
+			
+			if ( $xmppstream->status == XMPP\Stream::S_LISTENING )
+				$xmppstream->update_presence('status', sprintf('Bot Status: Online | Connected Bots: %s', count(BotManager::get_instance()->_bots)));
+		}
+		
+		// Autoload.
+		if ( $this->init_complete === true && $config->get('clients.'.$uuid.'.plugins', false) !== false ) {
+			foreach ( $config->get('clients.'.$uuid.'.plugins') AS $plugin )
+				// @@TODO@@
+		}
+		
+		return true;
+	}
+	
+	public function shutdown($uuid) {
+		if ( $this->bot->get_bot($uuid) === false ) {
+			throw new KernalError('Unknown Bot UUID!');
+			return false;
+		}
+		
+		Socket::get_instance()->close($this->bot->bot2sid($uuid));
+		$this->bot->destroy_bot($uuid);
+		Logger::get_instance()->info(__FILE__, __LINE__, 'Bot '.$uuid.' shutdown');
+		
+		// Update XMPP Bot.
+		if ( Config::get_instance()->get('xmpp.enabled', false) !== false ) {
+			$xmppstream = XMPP\Stream::get_instance();
+			
+			if ( $xmppstream->status == XMPP\Stream::S_LISTENING )
+				$xmppstream->update_presence('status', sprintf('Bot Status: Online | Connected Bots: %s', count(BotManager::get_instance()->_bots)));
+		}
+		
+		return true;
 	}
 	
 	public function loop() {

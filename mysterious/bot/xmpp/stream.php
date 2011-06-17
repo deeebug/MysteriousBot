@@ -94,7 +94,7 @@ class Stream extends Singleton {
 	private $features          = array();
 	private $mechanisms        = array();
 	
-	private $status            = self::S_NO_STATUS_SET;
+	public  $status            = self::S_NO_STATUS_SET;
 	private $_config           = array();
 	private $_readstream       = '';
 	private $tls_enabled       = false;

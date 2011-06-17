@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/27/2011                            ##
-##  [*] Last edit: 5/27/2011                          ##
+##  [*] Last edit: 6/16/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -30,24 +30,28 @@ class PluginManager extends Singleton {
 		if ( $autoload === false || empty($autoload) ) return;
 		
 		foreach ( $autoload AS $plugin )
-			$this->load_plugin($plugin);
+			$this->load($plugin);
 	}
 	
-	public function load_plugin($plugin) {
+	public function load($plugin) {
 		if ( file_exists(BASE_DIR.'plugins/'.strtolower($plugin).'.php') === false ) {
 			// Can't load it, just log it as a warning.
-			Logger::get_instance()->warning(__FILE__, __LINE__, '[Plugin Autoloader] Plugin '.$plugin.' does not exist: '.BASE_DIR.'plugins/'.strtolower($plugin).'.php');
+			Logger::get_instance()->warning(__FILE__, __LINE__, '[Plugin Loader] Plugin '.$plugin.' does not exist: '.BASE_DIR.'plugins/'.strtolower($plugin).'.php');
 			
 			return false;
 		}
 		
-		include BASE_DIR.'plugins/'.strtolower($plugin).'.php';
-		$class = 'Plugins\\'.$plugin;
-		$this->_plugins[strtolower($plugin)] = new $class;
+		if ( !isset($this->_plugins[strtolower($plugin)]) ) {
+			include BASE_DIR.'plugins/'.strtolower($plugin).'.php';
+			$class = 'Plugins\\'.$plugin;
+			$this->_plugins[strtolower($plugin)] = new $class;
+		}
 		
 		// Now for EVERY bot, we have to run the __initialize command
 		foreach ( Config::get_instance()->get('clients') AS $uuid => $settings ) {
 			if ( $settings['enabled'] === false ) continue;
+			if ( !isset($settings['plugins']) ) continue;
+			if ( !in_array($plugin, $settings['plugins']) ) continue;
 			
 			switch ( strtolower($settings['type']) ) {
 				case 'client':
@@ -77,6 +81,39 @@ class PluginManager extends Singleton {
 				break;
 			}
 		}
+	}
+	
+	public function load_plugin($plugin, $botuuid=null) {
+		if ( empty($botuuid) )
+			$affected = array_keys(BotManager::get_instance()->_bots);
+		else
+			$affected = array($botuuid);
+		
+		if ( !isset($this->_plugins[strtolower($plugin)]) ) {
+			include BASE_DIR.'plugins/'.strtolower($plugin).'.php';
+			$class = 'Plugins\\'.$plugin;
+			$this->_plugins[strtolower($plugin)] = new $class;
+		}
+		
+		foreach ( $affected AS $uuid ) {
+			if ( !isset(BotManager::get_instance()->_bots[$uuid]) ) continue;
+			
+			if ( BotManager::get_instance()->_bots[$uuid] instanceof Client ) {
+				// First tell the plugin that we're using XXXX bot
+				$this->_plugins[strtolower($plugin)]->__setbot($uuid);
+				
+				// Okay, run __initialize
+				$this->_plugins[strtolower($plugin)]->__initialize();
+			} else {
+				// First tell the plugin that we're using XXXX bot
+				$this->_plugins[strtolower($plugin)]->__setbot('S_'.$uuid.'-'.$clientuuid);
+				
+				// Okay, run __initialize
+				$this->_plugins[strtolower($plugin)]->__initialize();
+			}
+		}
+		
+		return true;
 	}
 	
 	public function get_plugin($plugin, $bot) {

@@ -1,0 +1,89 @@
+<html>
+<head>
+	<title>MysteriousBot :: WebUI</title>
+	<style type="text/css">
+		body{text-align:center;background:#eee;color:#222;font: 12pt "Lucida Grande", "Trebuchet MS", Verdana, sans-serif;}
+		#title{position:fixed;top:0px;left:0px;width:100%;background:#ccc;font:75%;}
+		#content{margin-top:100px;}
+		
+		.notification{display:block;position:fixed;top:0px;left:0px;color:#000000;background-color:#DDDDDD;padding:5px;z-index:10000}
+		
+		#rawlogs-view{background:white;color:gray;position:fixed;bottom:0px;right:0px;padding:14px;z-index:6;}
+		#console-view{background:white;color:gray;position:fixed;bottom:0px;right:150px;padding:14px;z-index:6;}
+		#socket-view{background:white;color:gray;position:fixed;bottom:0px;right:340px;padding:14px;z-index:6;}
+		
+		#records-view{background:rgba(0,0,0,0.17);display:none;#height:100%;#position:fixed;text-align:center;top:0px;width:100%;z-index:2;}
+		#records-view .container{background:#eee;margin:auto;}
+	</style>
+	
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
+	<script type="text/javascript" src="webui.js"></script>
+</head>
+<body>
+<div id="title">
+	<h1>Welcome to the MysteriousBot WebUI v1.0-ALPHA2</h1>
+</div>
+
+<div class="notification" style="display:none;"><p class="message">Loading</p></div>
+
+<div id="content">
+    <div id="bots-list">
+	<h2>Bot List</h2>
+    <table style="border-collapse:collapse;width:100%;" cellpadding="3" border="1" id="botlist">
+		<tr>
+			<td>STATUS</td>
+			<td>SERVER</td>
+			<td>BOT NICK</td>
+			<td>BOT IDENT</td>
+			<td>BOT HOST</td>
+			<td>TYPE</td>
+			<td>CHANNELS</td>
+			<td>CONTROL</td>
+		</tr>
+		<!--
+		<tr>
+			<td>Connected</td>
+			<td>localhost:6667</td>
+			<td>Client01-Client</td>
+			<td>Client</td>
+			<td>MysteriousClient.lol</td>
+			<td>Client</td>
+			<td>#opers,#test,#test2,#test3</td>
+			<td><a href="#">Shutdown</a></td>
+		</tr>
+		
+		<tr>
+			<td>Connected</td>
+			<td>localhost:6667</td>
+			<td>N/A</td>
+			<td>N/A</td>
+			<td>N/A</td>
+			<td>Server</td>
+			<td>N/A</td>
+			<td><a href="#">Shutdown</a></td>
+		</tr>
+		
+		<tr>
+			<td>Disconnected</td>
+			<td>localhost:6667</td>
+			<td>nick</td>
+			<td>ident</td>
+			<td>host</td>
+			<td>Client</td>
+			<td>#test1,#01,#02</td>
+			<td><a href="#">Boot</a></td>
+		</tr>-->
+	</table>
+    </div>
+</div>
+
+<a id="rawlogs-view" href="#rawlogs">View RAW Logs</a>
+<a id="console-view" href="#console">View console output</a>
+<a id="socket-view" href="#socket">View socket connections</a>
+
+<div id="records-view"><div class="container">
+
+</div></div>
+
+</body>
+</html>
