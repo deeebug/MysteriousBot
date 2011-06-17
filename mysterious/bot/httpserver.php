@@ -22,6 +22,7 @@ use Mysterious\Singleton;
 use Mysterious\Bot\IRC\BotManager;
 
 class HTTPServer extends Singleton {
+	private $closed   = false;
 	private $_codes   = array(
 		100 => '100 Continue',
 		200 => '200 OK',
@@ -79,7 +80,7 @@ class HTTPServer extends Singleton {
 	public function new_connection($socketid) { } // Does nothing.
 	
 	public function handle_read($socketid, $raw) {
-		$this->addlog = true;
+		$this->closed = false;
 		$parsed = $this->_parse($socketid, $raw);
 		
 		$this->serve($socketid, $parsed);
