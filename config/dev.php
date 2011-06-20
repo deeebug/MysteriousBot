@@ -14,15 +14,16 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 6/1/2011                           ##
+##  [*] Last edit: 6/19/2011                          ##
 ## ################################################## ##
 
 defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 
 return array(
-	'debug'  => true, // Enable debug-mode? [Basically allows debug-type messages to appear in logger
+	'debug'  => false, // Enable debug-mode? [Basically allows debug-type messages to appear in logger]
 	'usleep' => 1000, // How long before each socket read should the script wait? In microseconds
 	
+	// The clients array is just for IRC clients
 	'clients' => array(
 		'mysteriousbot001' => array(
 			// Bare settings
@@ -58,13 +59,13 @@ return array(
 			
 			// What plugins will be used by the bot.
 			'plugins' => array(
-				'exampleplugin'
+				'exampleplugin', 'helpmanager'
 			),
 		),
 		
 		'mysteriousbot002' => array(
 			// Bare settings
-			'enabled'  => false,
+			'enabled'  => true,
 			'type'     => 'server',
 			
 			// Connection settings
@@ -106,6 +107,10 @@ return array(
 					'autojoin' => array(
 						'#opers',
 					),
+					
+					'plugins'  => array(
+						'helpmanager',
+					),
 				),
 				
 				'client2' => array(
@@ -128,7 +133,7 @@ return array(
 		
 		'mysteriousbot003' => array(
 			// Bare settings
-			'enabled'  => false,
+			'enabled'  => true,
 			'type'     => 'client',
 			
 			// Connection settings
@@ -157,6 +162,10 @@ return array(
 				'#mysteriousbot',
 				'#test01',
 			),
+			
+			'plugins'  => array(
+				'helpmanager',
+			),
 		),
 	),
 	
@@ -167,6 +176,36 @@ return array(
 		'password'     => 'd3atht0y0u', // Password required to validate command
 		'max_clients'  => 10, // Max number of clients accepted to be connected.
 		'max_attempts' => 10, // Max number of attempts until socket is disconnected.
+	),
+	
+	'httpserver'  => array(
+		'enabled'      => true, // Enable the HTTP Server - WebUI
+		'ip'           => '127.0.0.1', // Port for the socket server to run on. Usually 127.0.0.1
+		'port'         => 8008, // Port for the socket server to run on
+		'webroot'      => BASE_DIR.'public/', // The webroot of the HTTP Server. Must include trailing slash!
+		'protect'      => true, // Protect the HTTP Server with a password?
+		'password'     => 'abcGTFO', // The password.
+	),
+	
+	'xmpp' => array(
+		'enabled'       => false,
+		'host'          => 'talk.google.com',
+		'port'          => 5222,
+		'username'      => 'the.mysteriousbot',
+		'domain'        => 'gmail.com',
+		'password'      => 'zzzthea',
+		
+		'resource'      => 'MysteriousBot',
+		'autosubscribe' => true,
+		
+		'admins'        => array(
+			'jtdroste@gmail.com',
+		),
+		
+		'plugin_dir'    => BASE_DIR.'xmpp_plugins/', // Must include trailing slash!
+		'plugins'       => array(
+			'exampleplugin',
+		),
 	),
 	
 	'database' => array(
@@ -194,10 +233,11 @@ return array(
 	
 	'autoload' => array(
 		'exampleplugin', // Autoload plugins. Must be in the /plugins dir. Put each name on a new line.
+		'helpmanager', // ALWAYS HAVE THIS!
 	),
 	
 	'logger' => array(
-		'default' => 'STDOUT', // Default logger script
+		'default' => 'STDOUT_HTTP', // Default logger script
 	),
 	
 	'ctcp' => array(
