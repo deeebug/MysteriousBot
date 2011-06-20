@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/27/2011                            ##
-##  [*] Last edit: 6/16/2011                          ##
+##  [*] Last edit: 6/17/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -22,7 +22,7 @@ use Mysterious\Singleton;
 use Mysterious\Bot\IRC\BotManager;
 
 class PluginManager extends Singleton {
-	private $_plugins = array();
+	public $_plugins = array();
 	
 	public function do_autoload() {
 		$autoload = Config::get_instance()->get('autoload');
@@ -83,7 +83,7 @@ class PluginManager extends Singleton {
 		}
 	}
 	
-	public function load_plugin($plugin, $botuuid=null) {
+	public function load_plugin($plugin, $botuuid=null, $load_server_clients=false, $server_clients_load=array()) {
 		if ( empty($botuuid) )
 			$affected = array_keys(BotManager::get_instance()->_bots);
 		else
@@ -105,11 +105,17 @@ class PluginManager extends Singleton {
 				// Okay, run __initialize
 				$this->_plugins[strtolower($plugin)]->__initialize();
 			} else {
-				// First tell the plugin that we're using XXXX bot
-				$this->_plugins[strtolower($plugin)]->__setbot('S_'.$uuid.'-'.$clientuuid);
+				if ( $load_server_clients == false ) continue;
 				
-				// Okay, run __initialize
-				$this->_plugins[strtolower($plugin)]->__initialize();
+				foreach ( Config::get_instance()->get('clients.'.$uuid.'.clients', array()) AS $clientuuid => $config ) {
+					if ( !empty($server_clients_load) && array_search($clientuuid, $server_clients_load) === false ) continue;
+					
+					// First tell the plugin that we're using XXXX bot
+					$this->_plugins[strtolower($plugin)]->__setbot('S_'.$uuid.'-'.$clientuuid);
+					
+					// Okay, run __initialize
+					$this->_plugins[strtolower($plugin)]->__initialize();
+				}
 			}
 		}
 		

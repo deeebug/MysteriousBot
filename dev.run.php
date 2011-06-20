@@ -31,7 +31,7 @@ $config_profile = 'dev';
 define('BASE_DIR', __DIR__.'/');
 defined('STDIN') && define('IS_CLI', true);
 define('Y_SO_MYSTERIOUS', true);
-define('MYSTERIOUSBOT_VERSION', '1.0-ALPHA2');
+define('MYSTERIOUSBOT_VERSION', '1.0-ALPHA3');
 
 require BASE_DIR.'mysterious/autoloader.php';
 

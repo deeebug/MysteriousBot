@@ -48,7 +48,7 @@ class ExamplePlugin extends Plugin {
 		// Get lines sent
 		$this->register_event('irc.privmsg', '!stats', 'cmd_stats');
 		
-		//$this->register_help('!example', 'The help info for !example');
+		$this->register_help('!example', 'The help info for !example');
 	}
 	
 	public function cmd_example() {

@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 6/16/2011                            ##
-##  [*] Last edit: 6/16/2011                          ##
+##  [*] Last edit: 6/19/2011                          ##
 ## ################################################## ##
 
 defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
@@ -29,7 +29,13 @@ defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 		
 		.connected{color: #008C00;}
 		.disconnected{color: #CC0000;}
+		table{empty-cells:hide;}
 		td {text-align:center;}
+		
+		.left{float:left;width:70%;}
+		.right{float:left;width:30%;}
+		
+		#plugins{text-align:left;display:block;margin-left:auto;margin-right:auto;border-style:solid;border-width:medium;width:40%;}
 		
 		#botlist-view{background:white;color:gray;position:fixed;bottom:0px;right:0px;padding:14px;z-index:6;}
 		#console-view{background:white;color:gray;position:fixed;bottom:0px;right:100px;padding:14px;z-index:6;}
@@ -43,11 +49,11 @@ defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 	</style>
 	
 	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
-	<script type="text/javascript" src="webui.js"></script>
+	<script type="text/javascript" src="webui.min.js?auth=<?=$authhash?>"></script>
 </head>
 <body>
 <div id="title">
-	<h1>Welcome to the MysteriousBot WebUI v1.0-ALPHA2</h1>
+	<h1>Welcome to the MysteriousBot WebUI v<?=MYSTERIOUSBOT_VERSION?></h1>
 </div>
 
 <div class="notification" style="display:none;"><p class="message">Loading</p></div>
@@ -56,7 +62,7 @@ defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
     <div id="bots-list">
 		<h2>Bot List</h2>
 		<table style="border-collapse:collapse;width:100%;" cellpadding="3" border="1" id="botlist">
-			<tr>
+			<tr id="botlist-header-noremove">
 				<td>STATUS</td>
 				<td>UUID</td>
 				<td>SERVER</td>
@@ -68,6 +74,24 @@ defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 				<td>CONTROL</td>
 			</tr>
 		</table>
+		
+		<h2>Plugins</h2>
+		
+		<div id="plugins">
+			<div class="left">
+				<h3>Load</h3>
+				<p>Plugin name: <div id="plugin-select-area"><input type="text" name="plugin-select" id="plugin-select" /></div> (Must be in the /plugins directory)<br />Affected bots:</p>
+				
+				<p id="plugin-checkbox">Loading...</p>
+				<p><button id="plugin-load">Load Plugin</button></p>
+			</div>
+			<div class="right">
+				<h3>Loaded:</h3>
+				<ul id="plugin-loaded-plugins">
+					<li>Loading...</li>
+				</ul>
+			</div>
+		</div>
     </div>
     
     <div id="sockets-list">
@@ -79,6 +103,7 @@ defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
 				<td>HOST</td>
 				<td>PORT</td>
 				<td>SSL</td>
+				<td>RECORD</td>
 				<td>CALLBACK</td>
 				<td>DISCONNECT</td>
 			</tr>

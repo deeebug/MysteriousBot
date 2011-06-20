@@ -83,7 +83,12 @@ class Client {
 	}
 	
 	public function privmsg($channel, $message) {
-		$this->raw('PRIVMSG '.$channel.' :'.$message);
+		if ( is_array($message) ) {
+			foreach ( $message AS $msg )
+				$this->raw('PRIVMSG '.$channel.' :'.$msg);
+		} else {
+			$this->raw('PRIVMSG '.$channel.' :'.$message);
+		}
 	}
 	
 	public function notice($to, $message) {

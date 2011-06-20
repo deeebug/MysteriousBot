@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/23/2011                            ##
-##  [*] Last edit: 6/16/2011                          ##
+##  [*] Last edit: 6/17/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -32,6 +32,9 @@ class Kernal extends Singleton {
 	private $bot;
 	private $sserver; // Socket Server
 	private $xmpp;
+	
+	// Helpdocs
+	private $_helpdocs = array();
 	
 	public function initialize() {
 		// Are we even on the CLI?
@@ -208,7 +211,7 @@ class Kernal extends Singleton {
 		// Autoload.
 		if ( $this->init_complete === true && $config->get('clients.'.$uuid.'.plugins', false) !== false ) {
 			foreach ( $config->get('clients.'.$uuid.'.plugins') AS $plugin )
-				// @@TODO@@
+				PluginManager::get_instance()->load_plugin($plugin, $uuid);
 		}
 		
 		return true;
@@ -269,6 +272,23 @@ class Kernal extends Singleton {
 		if ( empty($sid) )     return;
 		if ( empty($payload) ) return;
 		Socket::get_instance()->write($sid, $payload);
+	}
+	
+	public function add_help($command, $doc) {
+		$this->_helpdocs[$command] = $doc;
+	}
+	
+	public function get_help($short=false, $maxlen=40) {
+		if ( $short === false ) {
+			return $this->_helpdocs;
+		} else {
+			$rtn = array();
+			
+			foreach ( $this->_helpdocs AS $k => $v )
+				$rtn[$k] = substr($v, 0, $maxlen);
+			
+			return $rtn;
+		}
 	}
 }
 

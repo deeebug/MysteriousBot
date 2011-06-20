@@ -1,16 +1,27 @@
-/*
+<?php
 ## ################################################## ##
 ##                   MysteriousBot                    ##
 ## -------------------------------------------------- ##
 ##  [*] Package: MysteriousBot                        ##
 ##                                                    ##
+##  [!] License: $LICENSE--------$                    ##
+##  [!] Registered to: $DOMAIN----------------------$ ##
+##  [!] Expires: $EXPIRES-$                           ##
+##                                                    ##
 ##  [?] File name: webui.js                           ##
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
-##  [*] Created: 6/12/2011                            ##
-##  [*] Last edit: 6/12/2011                          ##
+##  [*] Created: 6/19/2011                            ##
+##  [*] Last edit: 6/19/2011                          ##
 ## ################################################## ##
-*/
+
+defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
+?>
+// ==ClosureCompiler==
+// @compilation_level ADVANCED_OPTIMIZATIONS
+// @output_file_name webui.min.js
+// @externs_url http://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.js
+// ==/ClosureCompiler==
 
 $(document).ready(function() {
 	$('.notification').hide();
@@ -23,6 +34,7 @@ $(document).ready(function() {
 
 var MysteriousBot = {
 	intervalid: 0,
+	key: '<?=$authhash?>',
 	
 	init: function() {
 		$('#botlist-view').click(function() {
@@ -61,12 +73,40 @@ var MysteriousBot = {
 			return false;
 		});
 		
-		this.botlist();
+		$('#plugin-load').click(function() {
+			var values = new Array();
+			$.each($("input[class='plugin-checkbox-affected']:checked"), function() {
+				values.push($(this).val());
+			});
+			
+			$.get('api/loadplugin', {auth: MysteriousBot.key, plugin: $('#plugin-select').val(), affect: values.join(',')}, function(data) {
+				data = data.split('::');
+				
+				if ( data[0] == 'ERROR' ) {
+					alert('Error loading: '+data[1]);
+				}
+				
+				MysteriousBot.key = data[2];
+			});
+			
+			$('#plugin-select').val('');
+			$.each($("input[class='plugin-checkbox-affected']:checked"), function() {
+				$(this).removeAttr('checked');
+			});
+			return false;
+		});
+		
+		MysteriousBot.botlist();
 	},
 	
 	botlist: function() {
-		$.get('api/getbots', function(data) {
+		$.get('api/getbots', {auth: MysteriousBot.key}, function(data) {
 			jsondata = json_decode(data);
+			$('#botlist').html('<tr id="botlist-header-noremove">'+$('#botlist-header-noremove').html()+'</tr>');
+			$('#plugin-checkbox').html('');
+			
+			MysteriousBot.key = jsondata['auth'];
+			delete jsondata['auth'];
 			
 			$.each(jsondata, function(key, val) {
 				if ( val['status'] == true ) {
@@ -77,27 +117,59 @@ var MysteriousBot = {
 					uri = '<a href="#" class="bot-boot" bot="'+val['uuid']+'">Boot</a>';
 				}
 				
-				finishdata = '<td>'+status+'</td><td>'+val['uuid']+'</td><td>'+val['server']+':'+val['port']+'</td><td>'+val['nick']+'</td><td>'+val['ident']+'</td><td>'+val['name']+'</td><td>'+val['type']+'</td><td>'+val['channels']+'</td><td>'+uri+'</td>';
+				finishdata = '<tr><td>'+status+'</td><td>'+val['uuid']+'</td><td>'+val['server']+':'+val['port']+'</td><td>'+val['nick']+'</td><td>'+val['ident']+'</td><td>'+val['name']+'</td><td>'+val['type']+'</td><td>'+val['channels']+'</td><td>'+uri+'</td></tr>';
 				
-				if ( $('#'+val['uuid']).length > 0 ) {
-					$('#'+val['uuid']).html(finishdata);
-				} else {
-					$('#botlist').append('<tr id="'+val['uuid']+'">'+finishdata+'</tr>');
+				$('#botlist').append(finishdata);
+				
+				if ( val['is_server'] == true )
+					type = 'server';
+				else
+					type = 'client';
+				
+				if ( val['status'] != true) return;
+				
+				$('#plugin-checkbox').append('<input type="checkbox" class="plugin-checkbox-affected" name="affected[]" value="'+type+'-'+val['uuid']+'" /> '+val['uuid']);
+				
+				if ( val['is_server'] == true && val['children'] !== undefined ) {
+					$('#plugin-checkbox').append(' (Affects ALL Server-Clients)');
+					$.each(val['children'], function(key, data) {
+						finishdata = '<tr><td></td><td>'+data['uuid']+'</td><td>'+data['server']+':'+data['port']+'</td><td>'+data['nick']+'</td><td>'+data['ident']+'</td><td>'+data['name']+'</td><td>'+data['type']+'</td><td>'+data['channels']+'</td><td>N/A</td></tr>';
+						
+						$('#botlist').append(finishdata);
+						$('#plugin-checkbox').append('<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="checkbox" class="plugin-checkbox-affected" name="affected[]" value="'+val['uuid']+'-'+data['uuid']+'" /> '+data['uuid']);
+					});
 				}
+				
+				$('#plugin-checkbox').append('<br />');
 			});
 			
 			MysteriousBot.register();
 		});
+		
+		$.get('api/loadedplugins', {auth: MysteriousBot.key}, function(data) {
+			$('#plugin-loaded-plugins').html('');
+			jsondata = json_decode(data);
+			
+			MysteriousBot.key = jsondata['key'];
+			delete jsondata['key'];
+			
+			$.each(jsondata, function(k, v) {
+				$('#plugin-loaded-plugins').append('<li>'+v+'</li>');
+			});
+		});
 	},
 	
 	socketlist: function() {
-		$.get('api/getsockets', function(data) {
+		$.get('api/getsockets', {auth: MysteriousBot.key}, function(data) {
 			jsondata = json_decode(data);
 			$('.sockets').remove();
 			
-			$.each(jsondata, function(key, val) {				
+			MysteriousBot.key = jsondata['auth'];
+			delete jsondata['auth'];
+			
+			$.each(jsondata, function(key, val) {
 				disconnectlink = '<a href="#" class="socket-disconnect" sid="'+val['id']+'">Disconnect</a>';
-				finishdata = '<tr class="sockets"><td>'+val['id']+'</td><td>'+val['type']+'</td><td>'+val['host']+'</td><td>'+val['port']+'</td><td>'+val['ssl']+'</td><td>'+val['callback']+'</td><td>'+disconnectlink+'</td></tr>';
+				finishdata = '<tr class="sockets"><td>'+val['id']+'</td><td>'+val['type']+'</td><td>'+val['host']+'</td><td>'+val['port']+'</td><td>'+val['ssl']+'</td><td>'+val['record']+'</td><td>'+val['callback']+'</td><td>'+disconnectlink+'</td></tr>';
 				$('#socketlist').append(finishdata);
 			});
 			
@@ -105,13 +177,14 @@ var MysteriousBot = {
 				$('.message').html('Disconnecting socket id '+$(this).attr('sid'));
 				$('.notification').show();
 				
-				$.get('api/socketshutdown', {sid: $(this).attr('sid')}, function(data) {
-					data = data.split(':');
+				$.get('api/socketshutdown', {sid: $(this).attr('sid'), auth: MysteriousBot.key}, function(data) {
+					data = data.split('::');
 					
 					if ( data[0] == 'ERROR' ) {
 						alert('Error disconnecting: '+data[1]);
 					}
 					
+					MysteriousBot.key = data[2];
 					MysteriousBot.socketlist();
 				});
 				
@@ -129,14 +202,15 @@ var MysteriousBot = {
 			$('.message').html('Booting bot UUID '+$(this).attr('bot'));
 			$('.notification').show();
 			
-			$.get('api/boot', {uuid: $(this).attr('bot')}, function(data) {
-				data = data.split(':');
+			$.get('api/boot', {uuid: $(this).attr('bot'), auth: MysteriousBot.key}, function(data) {
+				data = data.split('::');
 				
 				if ( data[0] == 'ERROR' ) {
 					alert('Error booting: '+data[1]);
 				}
 				
-				MysteriousBot.init();
+				MysteriousBot.key = data[2];
+				MysteriousBot.botlist();
 			});
 			
 			$('.notification').hide();
@@ -147,14 +221,15 @@ var MysteriousBot = {
 			$('.message').html('Shutting down bot UUID '+$(this).attr('bot'));
 			$('.notification').show();
 			
-			$.get('api/shutdown', {uuid: $(this).attr('bot')}, function(data) {
-				data = data.split(':');
+			$.get('api/shutdown', {uuid: $(this).attr('bot'), auth: MysteriousBot.key}, function(data) {
+				data = data.split('::');
 				
 				if ( data[0] == 'ERROR' ) {
 					alert('Error shutting down: '+data[1]);
 				}
 				
-				MysteriousBot.init();
+				MysteriousBot.key = data[2];
+				MysteriousBot.botlist();
 			});
 			
 			$('.notification').hide();
@@ -165,12 +240,14 @@ var MysteriousBot = {
 	console: function() {
 		$('#console-output-append').html('Loading.....');
 		
-		$.get('api/checkconsole', function(data) {
-			data = data.split(':');
+		$.get('api/checkconsole', {auth: MysteriousBot.key}, function(data) {
+			data = data.split('::');
 			
 			if ( data[0] == 'ERROR' ) {
 				$('#console-output-append').html(data[1]);
 			}
+			
+			MysteriousBot.key = data[2];
 		});
 		
 		// Check if theres errors
@@ -179,13 +256,23 @@ var MysteriousBot = {
 		
 		$('#console-output-append').html('');
 		
-		this.updateconsole();
-		this.intervalid = setInterval('MysteriousBot.updateconsole()', 5000 );
+		MysteriousBot.updateconsole();
+		MysteriousBot.intervalid = setInterval('MysteriousBot.updateconsole()', 5000 );
 	},
 	
 	updateconsole: function() {
-		$.get('api/consolepoll', function(data) {
-			$('#console-output-append').html(data);
+		$.get('api/consolepoll', {auth: MysteriousBot.key}, function(data) {
+			jsondata = json_decode(data);
+			
+			MysteriousBot.key = jsondata['key'];
+			delete jsondata['key'];
+			
+			finaldata = null;
+			$.each(jsondata, function(k, v) {
+				finaldata = finaldata+v+'<br />';
+			});
+			
+			$('#console-output-append').html(finaldata);
 			
 			document.getElementById('console-terminal').scrollTop = document.getElementById('console-terminal').scrollHeight;
 		});
@@ -196,7 +283,7 @@ var MysteriousBot = {
 		$('#sockets-list').hide();
 		$('#console-output').hide();
 		$('#shutdown').hide();
-		clearInterval(this.intervalid);
+		clearInterval(MysteriousBot.intervalid);
 		
 		$('#'+divid).show();
 	}

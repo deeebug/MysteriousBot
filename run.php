@@ -13,7 +13,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/23/2011                            ##
-##  [*] Last edit: 6/3/2011                           ##
+##  [*] Last edit: 6/19/2011                          ##
 ## ################################################## ##
 
 ## ################################################## ##
@@ -31,7 +31,7 @@ $config_profile = 'default';
 define('BASE_DIR', __DIR__.'/');
 defined('STDIN') && define('IS_CLI', true);
 define('Y_SO_MYSTERIOUS', true);
-define('MYSTERIOUSBOT_VERSION', '1.0-ALPHA2');
+define('MYSTERIOUSBOT_VERSION', '1.0-ALPHA3');
 
 require BASE_DIR.'mysterious/autoloader.php';
 

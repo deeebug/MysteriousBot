@@ -122,6 +122,10 @@ abstract class Plugin {
 		return true;
 	}
 	
+	final public function register_help($command, $docs) {
+		Kernal::get_instance()->add_help($command, $docs);
+	}
+	
 	final public function register_timer($when, $function, $args=array(), $once=false) {
 		$plugin = explode('\\', get_class($this));
 		$plugin = array_pop($plugin);

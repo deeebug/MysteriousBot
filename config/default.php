@@ -14,7 +14,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/24/2011                            ##
-##  [*] Last edit: 5/29/2011                          ##
+##  [*] Last edit: 6/19/2011                          ##
 ## ################################################## ##
 
 defined('Y_SO_MYSTERIOUS') or die('External script access is forbidden.');
@@ -176,7 +176,6 @@ return array(
 		'webroot'      => BASE_DIR.'public/', // The webroot of the HTTP Server. Must include trailing slash!
 		'protect'      => true, // Protect the HTTP Server with a password?
 		'password'     => 'abcGTFO', // The password.
-		'max_clients'  => 30, // Max number of clients accepted to be connected. Keep it relatively high (30-ish)
 	),
 	
 	'xmpp' => array(
@@ -228,7 +227,7 @@ return array(
 	),
 	
 	'logger' => array(
-		'default' => 'STDOUT', // Default logger script
+		'default' => 'STDOUT_HTTP', // Default logger script
 	),
 	
 	'ctcp' => array(

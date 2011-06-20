@@ -12,7 +12,7 @@
 ##                                                    ##
 ##  [*] Author: debug <jtdroste@gmail.com>            ##
 ##  [*] Created: 5/27/2011                            ##
-##  [*] Last edit: 5/27/2011                          ##
+##  [*] Last edit: 6/17/2011                          ##
 ## ################################################## ##
 
 namespace Mysterious\Bot;
@@ -26,6 +26,9 @@ class Message {
 	}
 	
 	public static function __callStatic($name, $args) {
-		return isset(self::$_data[$name]) ? self::$_data[$name] : null;
+		if ( isset($args[0]) && is_numeric($args[0]) && isset(self::$_data[$name]) && is_array(self::$_data[$name]) )
+			return isset(self::$_data[$name][$args[0]]) ? self::$_data[$name][$args[0]] : null;
+		else
+			return isset(self::$_data[$name]) ? self::$_data[$name] : null;
 	}
 }
