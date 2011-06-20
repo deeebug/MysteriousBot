@@ -1,6 +1,6 @@
 Welcome to MysteriousBot!
-	Version: 1.0-ALPHA2
-	Released: 6/3/2011
+	Version: 1.0-ALPHA3
+	Released: 6/19/2011
 
 ====
 
@@ -73,6 +73,9 @@ Message::DATA()
 Socket Server:
 	There is a socket server functionality built into MysteriousBot. You can access, i.e. send messages, or control the bot from it
 	An example is located in the misc/socket_test.php file.
+====
+HTTP Server:
+	Nothing really to talk about. Anything in the /api directory is handled by HTTPServer::_serve_special
 ====
 XMPP:
 	Plugins go inside the xmpp_plugins directory (or where ever you put it in the config file)
